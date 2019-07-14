@@ -27,7 +27,7 @@
         <button id="testButton" class="btn center">Start</button>
         <button id="optionsButton" class="btn btn-square"><i class="cog icon img-centered"></i></button>
       </div>
-      <div id="transcript-frame" class="ui top attached raised segment header transcript-frame unselectable" unselectable="on">
+      <div id="transcriptFrame" class="ui top attached raised segment header transcript-frame unselectable" unselectable="on">
         <!--
         <div class="left floated hover-button button-dropdown button-dropdown-active" onclick="transcriptDropdown()">
           <i id="transcript-dropdown" class="dropdown icon icon img-centered button-dropdown-icon button-dropdown-icon-active"></i>
@@ -85,25 +85,25 @@
                 <div class="left floated">
                   <i class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute(this)"></i>
                 </div>
-                <div id="volume-slider" class="ui slider slider-full right floated">
+                <div id="volumeSlider" class="ui slider slider-full right floated">
                   <div class="inner">
                     <div class="track"></div>
-                    <div id="volume-fill" class="track-fill"></div>
-                    <div id="volume-thumb" class="thumb" onmousedown="volume_slider_mousedown()"></div>
+                    <div id="volumeFill" class="track-fill"></div>
+                    <div id="volumeThumb" class="thumb" onmousedown="volumeSliderMousedown()"></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div id="extra-voice-options" class="row no-top-padding no-bottom-padding" style="display: none !important">
+            <div id="extraVoiceOptions" class="row no-top-padding no-bottom-padding" style="display: none !important">
               <div class="eight wide column">
                 <p class="left floated option-text">Pitch</p>
                 <p></p>
-                <div id="pitch-slider" class="ui slider">
+                <div id="pitchSlider" class="ui slider">
                   <div class="inner">
                     <div class="track"></div>
                     <div class="track-fill"></div>
-                    <div id="pitch-thumb" class="thumb" onmousedown="pitch_slider_mousedown()"></div>
+                    <div id="pitchThumb" class="thumb" onmousedown="pitchSliderMousedown()"></div>
                   </div>
                 </div>
               </div>
@@ -111,11 +111,11 @@
               <div class="eight wide column">
                 <p class="left floated option-text">Rate</p>
                 <p></p>
-                <div id="rate-slider" class="ui slider">
+                <div id="rateSlider" class="ui slider">
                   <div class="inner">
                     <div class="track"></div>
                     <div class="track-fill"></div>
-                    <div id="rate-thumb" class="thumb" onmousedown="rate_slider_mousedown()"></div>
+                    <div id="rateThumb" class="thumb" onmousedown="rateSliderMousedown()"></div>
                   </div>
                 </div>
               </div>
@@ -125,7 +125,7 @@
               <div class="eight wide column">
                 <p class="left floated option-text">Show Transcript</p>
                 <div class="ui right floated toggle checkbox">
-                  <input id="transcript-checkbox" type="checkbox" name="public" checked="true">
+                  <input id="transcriptCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
                 </div>
                 </div>
@@ -133,7 +133,7 @@
                 <div class="eight wide column">
                   <p class="left floated option-text">Show Diagnostics</p>
                 <div class="ui right floated toggle checkbox">
-                  <input id="diagnostics-checkbox" type="checkbox" name="public" checked="true">
+                  <input id="diagnosticsCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
                 </div>
               </div>
@@ -143,7 +143,7 @@
               <div class="eight wide column">
                 <p class="left floated option-text">Low-Latency</p>
                 <div class="ui right floated toggle checkbox">
-                  <input id="lowlatency-checkbox" type="checkbox" name="public" checked="true">
+                  <input id="lowlatencyCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
                 </div>
               </div>
@@ -151,7 +151,7 @@
               <div class="eight wide column">
                 <p class="left floated option-text">Translation</p>
                 <div class="ui right floated toggle checkbox">
-                  <input id="translate-checkbox" type="checkbox" name="public">
+                  <input id="translateCheckbox" type="checkbox" name="public">
                   <label></label>
                 </div>
               </div>
@@ -163,12 +163,6 @@
           <span>Created by ShadowForest </span><span class="extra-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
         </div>
       </div>
-
-<!--
-      <div class="top-right-corner">
-        <button id="optionsButton" class="btn">Options</button>
-      </div>
--->
 
       <div class="center bottom-margin">
         <p id="diagnostics" class="output bottom-margin">
