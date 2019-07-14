@@ -35,7 +35,7 @@ Visit https://shadowforests.github.io/VoiceToSpeech/ to use Voice to Speech.
 
 ## Web Socket
 
-You can set up a web socket server on your PC to send speech output text directly to your PC. You can find an example in this repository. Start the server by running `socket/run_server.bat` and speech will be sent into `socket/vts_speech.txt` whenever you use the Voice To Speech site.
+You can set up a web socket server on your PC to send speech output text directly to your PC. You can find an example in this repository that you can run using Node. Start the server by running `socket/run_server.bat` and speech will be sent into `socket/vts_speech.txt` whenever you use the Voice To Speech site.
 
 ## Bi-directional Translation
 
