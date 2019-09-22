@@ -279,6 +279,7 @@ const outputLangs = [
   ['zh', 'Chinese, Mandarin (Simplified, China)', '普通话 (中国大陆)'],
 ];
 
+const rvLangsEnabled = false;
 const rvLangs = [
   ['en-GB&gender=female', 'English UK Female'],
   ['en-GB&gender=male', 'English UK Male'],
@@ -473,64 +474,79 @@ function gotLanguages() {
     langInputSelect.appendChild(option);
   }
 
-  // Output
-  // Header
-  const header1 = document.createElement('option');
-  header1.value = 'header';
-  // header1.text = "🔊 Built-in Voices"
-  header1.text = '🔊 Voice Set A [Special]';
-  langOutputSelect.appendChild(header1);
+  if (rvLangsEnabled) {
+    // Output
+    // Header
+    const header1 = document.createElement('option');
+    header1.value = 'header';
+    // header1.text = "🔊 Built-in Voices"
+    header1.text = '🔊 Voice Set A [Special]';
+    langOutputSelect.appendChild(header1);
 
-  /*
-  // Speech Synthesis Voices
-  var voices = speechSynthesis.getVoices();
-  for(i = 0; i < voices.length ; i += 1) {
-    var option = document.createElement('option');
-    option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
-    option.value = `ss-${i}:${voices[i].lang}`;
-    option.text = voices[i].name;
-    try {
-      // Remap name
-      option.text = builtinLangMapping[option.text][0];
-    } catch (err) {}
-    langOutputSelect.appendChild(option);
+    /*
+    // Speech Synthesis Voices
+    var voices = speechSynthesis.getVoices();
+    for(i = 0; i < voices.length ; i += 1) {
+      var option = document.createElement('option');
+      option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+      option.value = `ss-${i}:${voices[i].lang}`;
+      option.text = voices[i].name;
+      try {
+        // Remap name
+        option.text = builtinLangMapping[option.text][0];
+      } catch (err) {}
+      langOutputSelect.appendChild(option);
+    }
+    delete speechSynthesis.onvoiceschanged;
+    */
+
+    // Voice Set A
+    for (let i = 0; i < rvLangs.length; i += 1) {
+      const option = document.createElement('option');
+      option.value = rvLangs[i][0];
+      option.text = rvLangs[i][1];
+      langOutputSelect.appendChild(option);
+    }
+
+    // Divider
+    const divider = document.createElement('option');
+    divider.value = 'divider';
+    divider.text = '';
+    langOutputSelect.appendChild(divider);
+
+    // Header
+    const header2 = document.createElement('option');
+    header2.value = 'header';
+    // header2.text = "🔊 Language Voices"
+    header2.text = '🔊 Voice Set B [Normal]';
+    langOutputSelect.appendChild(header2);
+
+    // Output Languages
+    for (let i = 0; i < outputLangs.length; ++i) {
+      const option = document.createElement('option');
+      option.value = outputLangs[i][0];
+      option.text = outputLangs[i][1];
+      langOutputSelect.appendChild(option);
+    }
+
+    // Set default lang selections
+    langInputSelect.selectedIndex = 45;
+    // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
+    langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
+  } else {
+    // Output Languages
+    for (let i = 0; i < outputLangs.length; ++i) {
+      const option = document.createElement('option');
+      option.value = outputLangs[i][0];
+      option.text = outputLangs[i][1];
+      langOutputSelect.appendChild(option);
+    }
+
+    // Set default lang selections
+    langInputSelect.selectedIndex = 45;
+    // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
+    langOutputSelect.selectedIndex = 17;
   }
-  delete speechSynthesis.onvoiceschanged;
-  */
-
-  // Voice Set A
-  for (let i = 0; i < rvLangs.length; i += 1) {
-    const option = document.createElement('option');
-    option.value = rvLangs[i][0];
-    option.text = rvLangs[i][1];
-    langOutputSelect.appendChild(option);
-  }
-
-  // Divider
-  const divider = document.createElement('option');
-  divider.value = 'divider';
-  divider.text = '';
-  langOutputSelect.appendChild(divider);
-
-  // Header
-  const header2 = document.createElement('option');
-  header2.value = 'header';
-  // header2.text = "🔊 Language Voices"
-  header2.text = '🔊 Voice Set B [Normal]';
-  langOutputSelect.appendChild(header2);
-
-  // Output Languages
-  for (let i = 0; i < outputLangs.length; ++i) {
-    const option = document.createElement('option');
-    option.value = outputLangs[i][0];
-    option.text = outputLangs[i][1];
-    langOutputSelect.appendChild(option);
-  }
-
-  // Set default lang selections
-  langInputSelect.selectedIndex = 45;
-  // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
-  langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
 }
 
 function fillLanguages() {
