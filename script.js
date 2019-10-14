@@ -279,7 +279,7 @@ const outputLangs = [
   ['zh', 'Chinese, Mandarin (Simplified, China)', '普通话 (中国大陆)'],
 ];
 
-const rvLangsEnabled = false;
+const rvLangsEnabled = true;
 const rvLangs = [
   ['en-GB&gender=female', 'English UK Female'],
   ['en-GB&gender=male', 'English UK Male'],
