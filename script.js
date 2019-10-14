@@ -1061,6 +1061,7 @@ function getTranslationPromise(sourceLang, targetLang, sourceText) {
         }
       } else {
         console.warn('request_error');
+        reject('request_error');
       }
     };
 
