@@ -19,6 +19,7 @@ const diagnostics = document.querySelector('p#diagnostics');
 const testButtonInfo = document.querySelector('p#testButtonInfo');
 const testButton = document.querySelector('button#testButton');
 const outputVoiceText = document.querySelector('p#outputVoiceText');
+const audioOutputText = document.querySelector('p#audioOutputText');
 const $optionsButton = $('button#optionsButton');
 const $transcriptButton = $('input#transcriptCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
@@ -39,6 +40,10 @@ const $pitchSlider = $('#pitchSlider');
 const $pitchThumb = $('#pitchThumb');
 const $rateSlider = $('#rateSlider');
 const $rateThumb = $('#rateThumb');
+const $pitchSliderSS = $('#pitchSliderSS');
+const $pitchThumbSS = $('#pitchThumbSS');
+const $rateSliderSS = $('#rateSliderSS');
+const $rateThumbSS = $('#rateThumbSS');
 
 let buttonState = 0;
 let translateApi = 0;
@@ -464,8 +469,17 @@ outputLangs.sort((a, b) => {
   return 0;
 });
 
+function removeAllChildNodes(parent) {
+  while (parent.firstChild) {
+      parent.removeChild(parent.firstChild);
+  }
+}
+
 // Fill languages
 function gotLanguages() {
+  removeAllChildNodes(langInputSelect);
+  removeAllChildNodes(langOutputSelect);
+
   // Input Languages
   for (let i = 0; i < inputLangs.length; i += 1) {
     const option = document.createElement('option');
@@ -474,31 +488,14 @@ function gotLanguages() {
     langInputSelect.appendChild(option);
   }
 
-  if (rvLangsEnabled) {
+  const voices = speechSynthesis.getVoices();
+  if (rvLangsEnabled || voices.length > 0) {
     // Output
     // Header
     const header1 = document.createElement('option');
     header1.value = 'header';
-    // header1.text = "🔊 Built-in Voices"
     header1.text = '🔊 Voice Set A [Special]';
     langOutputSelect.appendChild(header1);
-
-    /*
-    // Speech Synthesis Voices
-    var voices = speechSynthesis.getVoices();
-    for(i = 0; i < voices.length ; i += 1) {
-      var option = document.createElement('option');
-      option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
-      option.value = `ss-${i}:${voices[i].lang}`;
-      option.text = voices[i].name;
-      try {
-        // Remap name
-        option.text = builtinLangMapping[option.text][0];
-      } catch (err) {}
-      langOutputSelect.appendChild(option);
-    }
-    delete speechSynthesis.onvoiceschanged;
-    */
 
     // Voice Set A
     for (let i = 0; i < rvLangs.length; i += 1) {
@@ -528,11 +525,40 @@ function gotLanguages() {
       option.text = outputLangs[i][1];
       langOutputSelect.appendChild(option);
     }
-
-    // Set default lang selections
-    langInputSelect.selectedIndex = 45;
-    // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
-    langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
+    
+    if (voices) {
+      // Divider
+      const divider2 = document.createElement('option');
+      divider2.value = 'divider';
+      divider2.text = '';
+      langOutputSelect.appendChild(divider2);
+  
+      // Header
+      const header3 = document.createElement('option');
+      header3.value = 'header';
+      // header2.text = "🔊 Language Voices"
+      header3.text = "🔊 Built-in Voices"
+      langOutputSelect.appendChild(header3);
+  
+      // Speech Synthesis Voices
+      for(i = 0; i < voices.length ; i += 1) {
+        const option = document.createElement('option');
+        option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+        option.value = `ss-${i}:${voices[i].name}`;
+        option.text = voices[i].name;
+        try {
+          // Remap name
+          option.text = builtinLangMapping[option.text][0];
+        } catch (err) {}
+        langOutputSelect.appendChild(option);
+      }
+      speechSynthesis.onvoiceschanged = null;
+  
+      // Set default lang selections
+      langInputSelect.selectedIndex = 45;
+      // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
+      langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
+    }
   } else {
     // Output Languages
     for (let i = 0; i < outputLangs.length; ++i) {
@@ -554,9 +580,7 @@ function fillLanguages() {
 }
 
 fillLanguages();
-/*
 speechSynthesis.onvoiceschanged = fillLanguages;
-*/
 
 // gotLanguages(inputLangs, outputLangs);
 
@@ -574,6 +598,11 @@ function getOutputLang() {
   return outputLang;
   */
   return langOutputSelect.options[langOutputSelect.selectedIndex].value;
+}
+
+function getSpeechSynthesisVoice(outputLang) {
+  outputLang = outputLang.slice(outputLang.search(":")+1);
+  return speechSynthesis.getVoices().filter(function(voice) { return voice.name == outputLang; })[0];
 }
 
 function isSpacedLang(lang) {
@@ -628,8 +657,8 @@ $('.dropdown').dropdown({ fullTextSearch: 'exact' });
 let mute = false;
 
 let volume = 100;
-let pitch = 0.5;
-let rate = 0.5;
+let pitch = 1.0;
+let rate = 1.0;
 
 let volumeSliderActive = false;
 let pitchSliderActive = false;
@@ -695,13 +724,13 @@ $volumeThumb.mouseleave(() => {
 
 $pitchSlider.slider({
   min: 0,
-  max: 100,
-  start: 50,
-  step: 5,
+  max: 2,
+  start: 1,
+  step: 0.1,
   onMove(data) {
-    pitch = data.toFixed() / 100.0;
+    pitch = data.toFixed(1);
     try {
-      $pitchThumb.popup('change content', `${pitch * 2.0}`).popup('reposition');
+      $pitchThumb.popup('change content', `${pitch}`).popup('reposition');
     } catch (err) {
       // Do nothing
     }
@@ -713,14 +742,14 @@ function pitchSliderMousedown() {
   pitchSliderActive = true;
   $pitchThumb
     .popup('show')
-    .popup('change content', `${pitch * 2.0}`)
+    .popup('change content', `${pitch}`)
     .popup('reposition');
 }
 
 $pitchThumb.mouseenter(() => {
   $pitchThumb
     .popup('show')
-    .popup('change content', `${pitch * 2.0}`)
+    .popup('change content', `${pitch}`)
     .popup('reposition');
 });
 
@@ -732,13 +761,13 @@ $pitchThumb.mouseleave(() => {
 
 $rateSlider.slider({
   min: 0,
-  max: 100,
-  start: 50,
-  step: 5,
+  max: 2,
+  start: 1,
+  step: 0.1,
   onMove(data) {
-    rate = data.toFixed() / 100.0;
+    rate = data.toFixed(1);
     try {
-      $rateThumb.popup('change content', `${rate * 2.0}`).popup('reposition');
+      $rateThumb.popup('change content', `${rate}`).popup('reposition');
     } catch (err) {
       // Do nothing
     }
@@ -750,14 +779,14 @@ function rateSliderMousedown() {
   rateSliderActive = true;
   $rateThumb
     .popup('show')
-    .popup('change content', `${rate * 2.0}`)
+    .popup('change content', `${rate}`)
     .popup('reposition');
 }
 
 $rateThumb.mouseenter(() => {
   $rateThumb
     .popup('show')
-    .popup('change content', `${rate * 2.0}`)
+    .popup('change content', `${rate}`)
     .popup('reposition');
 });
 
@@ -788,10 +817,17 @@ function resetDropdownInput(element) {
 $('select#searchSelectOutput').change(() => {
   const outputLang = getOutputLang();
   const altLang = outputLang.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
-  if (altLang !== null) {
+  let ssLang = null;
+  if (outputLang.slice(0,2) === "ss") {
+    // Device Voices
+    ssLang = outputLang.slice(outputLang.search(":") + 1);
+  }
+  if (altLang !== null || ssLang !== null) {
     $('#extraVoiceOptions').removeAttr('style');
+    audioOutputText.textContent = 'Output Device'
   } else {
     $('#extraVoiceOptions').attr('style', 'display: none !important');
+    audioOutputText.textContent = 'Output Device'
   }
 });
 
@@ -840,13 +876,13 @@ $optionsButton.click(() => {
 
   $pitchThumb.popup({
     position: 'top center',
-    content: `${pitch * 2.0}`,
+    content: `${pitch}`,
     on: 'manual',
   });
 
   $rateThumb.popup({
     position: 'top center',
-    content: `${rate * 2.0}`,
+    content: `${rate}`,
     on: 'manual',
   });
 });
@@ -1137,7 +1173,7 @@ function gotDevices(deviceInfos) {
       option.text = deviceInfo.label || `speaker ${audioOutputSelect.length + 1}`;
       audioOutputSelect.appendChild(option);
     } else {
-      console.info('Some other kind of source/device: ', deviceInfo);
+      console.log('Some other kind of source/device: ', deviceInfo);
     }
   }
   selectors.forEach((select, selectorIndex) => {
@@ -1236,7 +1272,7 @@ async function playTranscriptAudio(elem, audioURL, stop = false) {
     hideTranscriptHover(activeAudioElement.parent());
     element.addClass('active-audio');
     element.children('i')[0].setAttribute('class', 'stop circle outline icon');
-    playAudio(audioURL, stop);
+    playAudio(audioURL, stop, true);
   } else {
     speechPlaying = false;
     audio.load();
@@ -1245,10 +1281,39 @@ async function playTranscriptAudio(elem, audioURL, stop = false) {
   }
 }
 
-async function playAudio(audioURL, stop = false) {
+async function playAudio(audioURL, stop, fromTranscript) {
   if (mute) {
     return;
   }
+
+  if (audioURL.startsWith('ss:')) {
+    // Let SpeechSynthesis handle audio queue and ignore usual transcript play stop logic
+    const activeAudioElement = $('.active-audio');
+    hideTranscriptHover(activeAudioElement.parent());
+    try {
+      activeAudioElement
+        .children('i')[0]
+        .setAttribute('class', 'play circle outline icon');
+      activeAudioElement.removeClass('active-audio');
+    } catch (err) {
+      // Do nothing
+    }
+
+    if (fromTranscript) {
+      speechSynthesis.cancel();
+    }
+
+    let msg = new SpeechSynthesisUtterance();
+    const options = audioURL.slice(audioURL.search(":") + 1).split("|");
+    msg.text = options[0];
+    msg.volume = volume / 100;
+    msg.rate = Math.pow(10, options[1] - 1);
+    msg.pitch = options[2];
+    msg.voice = getSpeechSynthesisVoice(options[3]);
+    speechSynthesis.speak(msg);
+    return;
+  }
+
   audio.setAttribute('src', audioURL);
   if (stop) {
     audio.load();
@@ -1286,7 +1351,7 @@ async function playAudio(audioURL, stop = false) {
         timeoutTimes = 0;
       } else {
         console.info(`Trying again ${timeoutTimes}`);
-        playAudio(audioURL);
+        playAudio(audioURL, false, false);
       }
     });
 }
@@ -1301,10 +1366,12 @@ async function playTTS(speech) {
     const inputLang = getInputLang();
     const outputLang = getOutputLang();
     const altLang = outputLang.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
-    /* Using native speech synthesis
-    speechSynthesis.speak(new SpeechSynthesisUtterance(speech.join(" ")));
-    return;
-    */
+    let ssLang = null;
+    if (outputLang.slice(0,2) === "ss") {
+      // Device Voices
+      ssLang = outputLang.slice(outputLang.search(":") + 1);
+    }
+    
     if (translateEnabled) {
       let translateSuccess = false;
       if (altLang !== null) {
@@ -1342,15 +1409,30 @@ async function playTTS(speech) {
     }
 
     let audioURL = '';
-    if (altLang !== null) {
-      // Example: https://code.responsivevoice.org/getvoice.php?t=hello&client=tw-ob&sv=g1&vn=&pitch=0.5&rate=0.5&vol=1&tl=en-US&gender=male
-      audioURL = `https://code.responsivevoice.org/getvoice.php?t=${speech}&client=tw-ob&sv=g1&vn=&pitch=${pitch}&rate=${rate}&vol=1&tl=${outputLang}`;
+    if (ssLang !== null) {
+      // Using native speech synthesis
+      if (speechText === '') {
+        return;
+      }
+      if (outputLang.toLowerCase().includes('google')) {
+        let rateAdjusted = rate;
+        if (rateAdjusted > 1) {
+          // Adjust to strech 1 to 1.3 into 1 to 2
+          rateAdjusted = 1 + Math.log10(rate);
+        }
+        audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(pitch, 0.1)}|${outputLang}`;
+      } else {
+        audioURL = `ss:${speechText}|${rate}|${pitch}|${outputLang}`;
+      }
+    } else if (altLang !== null) {
+      // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=0POmS5Y2&gender=male
+      audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speech}&lang=${outputLang}&engine=g3&name=&pitch=${pitch / 2.0}&rate=${rate / 2.0}&volume=1&key=0POmS5Y2`
     } else {
       // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
       audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speech}`;
     }
     appendTranscript(speechText, audioURL);
-    playAudio(audioURL);
+    playAudio(audioURL, false, false);
   } catch (err) {
     // ~console.info("error playTTS");
     console.error(err);
