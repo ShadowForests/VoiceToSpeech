@@ -23,11 +23,15 @@ const audioOutputText = document.querySelector('p#audioOutputText');
 const $optionsButton = $('button#optionsButton');
 const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
+const $timestampsButton = $('input#timestampsCheckbox');
+const $ttsButton = $('input#ttsCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
 const $translateButton = $('input#translateCheckbox');
 const transcriptHeader = document.querySelector('div#transcriptHeader');
 const transcript = document.querySelector('div#transcript');
+const ttsHeader = document.querySelector('div#ttsHeader');
+const ttsArea = document.querySelector('div#ttsArea');
 const audioInputSelect = document.querySelector('select#audioSource');
 const audioOutputSelect = document.querySelector('select#audioOutput');
 const selectors = [audioInputSelect, audioOutputSelect];
@@ -919,6 +923,28 @@ $transcriptButton.click(() => {
   }
 });
 
+$timestampsButton.click(() => {
+  if ($timestampsButton.prop('checked')) {
+    for (let transcriptTime of document.querySelectorAll('div#transcriptTime')) {
+      transcriptTime.style.display = 'block';
+    }
+  } else {
+    for (let transcriptTime of document.querySelectorAll('div#transcriptTime')) {
+      transcriptTime.style.display = 'none';
+    }
+  }
+});
+
+$ttsButton.click(() => {
+  if ($ttsButton.prop('checked')) {
+    ttsHeader.style.display = 'block';
+    ttsArea.style.display = 'block';
+  } else {
+    ttsHeader.style.display = 'none';
+    ttsArea.style.display = 'none';
+  }
+});
+
 $diagnosticsButton.click(() => {
   if ($diagnosticsButton.prop('checked')) {
     diagnostics.style.display = 'block';
@@ -978,6 +1004,7 @@ function appendTranscript(text, link) {
     <= transcript.scrollTop + 1;
 
   const transcriptTime = document.createElement('div');
+  transcriptTime.setAttribute('id', 'transcriptTime');
   transcriptTime.setAttribute('class', 'transcript-time unselectable');
   transcriptTime.setAttribute('unselectable', 'on');
   transcriptTime.textContent = getTranscriptTime();

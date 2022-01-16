@@ -579,6 +579,10 @@ select {
   padding-top: 10px !important;
 }
 
+.small-top-padding {
+  padding-top: 5px !important;
+}
+
 .slider {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
@@ -673,7 +677,7 @@ select {
   overflow: auto;
   padding: 10px !important;
   resize: vertical;
-  max-height: calc(100% - 275px);
+  max-height: calc(100% - 300px);
 }
 
 .transcript-body, .transcript-body > div {
@@ -750,10 +754,10 @@ select {
 }
 
 .tts-button {
-  font-size: 13.5px !important;
+  font-size: 20px !important;
   margin: 2px;
   position: relative;
-  width: 36px;
+  width: 36px !important;
   height: 36px;
   padding: 0px;
 }
