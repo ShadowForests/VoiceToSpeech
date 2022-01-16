@@ -21,11 +21,11 @@ const testButton = document.querySelector('button#testButton');
 const outputVoiceText = document.querySelector('p#outputVoiceText');
 const audioOutputText = document.querySelector('p#audioOutputText');
 const $optionsButton = $('button#optionsButton');
+const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
 const $translateButton = $('input#translateCheckbox');
-const $ttsInput = $('input#ttsInput');
 const transcriptHeader = document.querySelector('div#transcriptHeader');
 const transcript = document.querySelector('div#transcript');
 const audioInputSelect = document.querySelector('select#audioSource');
@@ -618,7 +618,7 @@ function isSpacedLang(lang) {
 
 // Set default language / dialect
 /*
-for (var i = 0; i < langs.length; i++) {
+for (let i = 0; i < langs.length; i++) {
   select_language.options[i] = new Option(langs[i][0], i);
 }
 select_language.selectedIndex = 10;
@@ -901,6 +901,13 @@ function transcriptDropdown() {
 }
 */
 
+$ttsInput.on('keypress', function(e) {
+  const code = e.keyCode || e.which;
+  if (code==13) {
+    playTTSInput();
+  }
+});
+
 $transcriptButton.click(() => {
   if ($transcriptButton.prop('checked')) {
     transcriptHeader.style.display = 'block';
@@ -1102,7 +1109,7 @@ function getTranslationPromise(sourceLang, targetLang, sourceText) {
       }
     };
 
-    var url = '';
+    let url = '';
     if (translateApi === 0) {
       // Example: https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=en-US&tl=ja-JP&q=hello
       url = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${sourceLang}&tl=${targetLang}&q=${encodeURI(sourceText)}`;
@@ -1136,11 +1143,11 @@ async function getTranslation(sourceLang, targetLang, sourceText) {
 }
 
 /*
-var sourceLang = "en-us";
-var targetLang = "ja";
-var sourceText = "translation test";
+const sourceLang = "en-us";
+const targetLang = "ja";
+const sourceText = "translation test";
 async function test() {
-  var testoutput = await getTranslation(sourceLang, targetLang, sourceText);
+  let testoutput = await getTranslation(sourceLang, targetLang, sourceText);
   console.info(testoutput);
 }
 test();
@@ -1359,8 +1366,10 @@ async function playAudio(audioURL, stop, fromTranscript) {
 
 async function playTTSInput() {
   const speech = $ttsInput.val();
-  $ttsInput.val("");
-  playTTS([speech], true);
+  if (speech !== "") {
+    $ttsInput.val("");
+    playTTS([speech], true);
+  }
 }
 
 async function playTTS(speech, direct) {
@@ -1607,7 +1616,7 @@ function testSpeech() {
       // ~console.info(interimTranscript);
 
       if (buttonState === 1) {
-        // var speechResult = event.results[0][0].transcript;
+        // let speechResult = event.results[0][0].transcript;
         let speechResult = interimTranscript;
         let confidenceResult = event.results[event.results.length - 1][0].confidence;
         if (speechResult === '') {
