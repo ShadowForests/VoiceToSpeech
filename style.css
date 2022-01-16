@@ -429,6 +429,7 @@ h1, p {
 
 .main-h1 {
   padding-top: 20px;
+  margin-bottom: 20px;
   font-size: 35px;
   font-weight: bold;
   text-align: center;
@@ -544,7 +545,16 @@ select {
 
 .bottom-margin {
   font-size: 15px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+}
+
+.bottom-margin-small {
+  font-size: 15px;
+  margin-bottom: 5px;
+}
+
+.divider {
+  margin-top: 10px;
 }
 
 @media only screen and (max-width: 767.5px) {
@@ -642,7 +652,7 @@ select {
   margin-right: 0px !important;
 }
 
-.transcript-frame {
+.transcript-header {
   display: block;
   margin: 0 auto !important;
   width: 80% !important;
@@ -707,6 +717,47 @@ select {
   margin-bottom: 0px;
 }
 
+.tts {
+  display: block;
+  margin: 0 auto !important;
+  width: calc(100%) !important;
+  height: 40px;
+  text-align: left;
+  word-wrap: break-word;
+  overflow: auto;
+  padding: 10px !important;
+  resize: vertical;
+  max-height: 100%;
+}
+
+.tts-area {
+  display: block;
+  margin: 0 auto !important;
+  width: 80% !important;
+  height: 40px;
+  text-align: left;
+  resize: vertical;
+  max-height: calc(100% - 275px);
+  padding: 0px !important;
+}
+
+.tts-input-area {
+  display: block;
+  margin: 0 auto !important;
+  width: 100% !important;
+  text-align: left;
+  padding: 0px !important;
+}
+
+.tts-button {
+  font-size: 13.5px !important;
+  margin: 2px;
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0px;
+}
+
 .hover-button {
   color: gray;
   cursor: pointer;
@@ -762,4 +813,20 @@ select {
 
 .extra-text {
   color: gray !important;
+}
+
+::-webkit-input-placeholder {
+  font-style: italic;
+}
+
+:-moz-placeholder {
+  font-style: italic;  
+}
+
+::-moz-placeholder {
+  font-style: italic;  
+}
+
+:-ms-input-placeholder {  
+  font-style: italic; 
 }

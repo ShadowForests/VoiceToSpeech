@@ -21,13 +21,29 @@
   <body>
     <div class="absolute-top">
       <h1 class="main-h1 unselectable" unselectable="on">Voice To Speech</h1>
-      <p id="testButtonInfo" class="bottom-margin unselectable" unselectable="on">Press start to begin speech recognition.</p>
+      <p id="testButtonInfo" class="bottom-margin-small unselectable" unselectable="on">Press start to begin speech recognition.</p>
 
       <div class="center bottom-margin unselectable" unselectable="on">
         <button id="testButton" class="btn center">Start</button>
         <button id="optionsButton" class="btn btn-square"><i class="cog icon img-centered"></i></button>
       </div>
-      <div id="transcriptFrame" class="ui top attached raised segment header transcript-frame unselectable" unselectable="on">
+
+      <div id="ttsHeader" class="ui top attached raised segment header transcript-header unselectable" unselectable="on">
+        Text to Speech
+        <div class="right floated hover-button">
+          <!-- <i class="close icon img-centered button-medium" onclick="$ttsButton.click()"></i> -->
+        </div>
+      </div>
+      <div id="ttsArea" class="tts-area unselectable" unselectable="on">
+        <div id="ttsInputArea" class="tts-input-area ui icon input unselectable" unselectable="on">
+          <input id="ttsInput" class="ui bottom attached raised segment tts options" type="text" placeholder="Type here..."></input>
+          <i class="play circle outline link icon img-centered" onclick="playTTSInput()"></i>
+        </div>
+      </div>
+
+      <div class="divider unselectable" unselectable="on"></div>
+      
+      <div id="transcriptHeader" class="ui top attached raised segment header transcript-header unselectable" unselectable="on">
         <!--
         <div class="left floated hover-button button-dropdown button-dropdown-active" onclick="transcriptDropdown()">
           <i id="transcript-dropdown" class="dropdown icon icon img-centered button-dropdown-icon button-dropdown-icon-active"></i>
@@ -36,7 +52,7 @@
         -->
         Transcript
         <div class="right floated hover-button">
-          <i class="close icon img-centered button-medium" onclick="transcriptButton.click()"></i>
+          <i class="close icon img-centered button-medium" onclick="$transcriptButton.click()"></i>
         </div>
       </div>
       <div id="transcript" class="scroller ui bottom attached raised segment transcript options"></div>

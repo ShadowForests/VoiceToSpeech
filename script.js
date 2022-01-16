@@ -25,7 +25,8 @@ const $transcriptButton = $('input#transcriptCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
 const $translateButton = $('input#translateCheckbox');
-const transcriptFrame = document.querySelector('div#transcriptFrame');
+const $ttsInput = $('input#ttsInput');
+const transcriptHeader = document.querySelector('div#transcriptHeader');
 const transcript = document.querySelector('div#transcript');
 const audioInputSelect = document.querySelector('select#audioSource');
 const audioOutputSelect = document.querySelector('select#audioOutput');
@@ -890,11 +891,11 @@ $optionsButton.click(() => {
 /*
 function transcriptDropdown() {
   if ($transcriptButton.prop("checked")) {
-    transcriptFrame.style.display = "block";
+    transcriptHeader.style.display = "block";
     transcript.style.display = "block";
     scrollTranscript();
   } else {
-    transcriptFrame.style.display = "none";
+    transcriptHeader.style.display = "none";
     transcript.style.display = "none";
   }
 }
@@ -902,11 +903,11 @@ function transcriptDropdown() {
 
 $transcriptButton.click(() => {
   if ($transcriptButton.prop('checked')) {
-    transcriptFrame.style.display = 'block';
+    transcriptHeader.style.display = 'block';
     transcript.style.display = 'block';
     scrollTranscript();
   } else {
-    transcriptFrame.style.display = 'none';
+    transcriptHeader.style.display = 'none';
     transcript.style.display = 'none';
   }
 });
@@ -1356,9 +1357,15 @@ async function playAudio(audioURL, stop, fromTranscript) {
     });
 }
 
-async function playTTS(speech) {
+async function playTTSInput() {
+  const speech = $ttsInput.val();
+  $ttsInput.val("");
+  playTTS([speech], true);
+}
+
+async function playTTS(speech, direct) {
   // ~console.info("playTTS");
-  if (speech.length === 0 || buttonState !== 1) {
+  if (speech.length === 0 || (buttonState !== 1 && direct == false)) {
     return;
   }
   try {
