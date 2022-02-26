@@ -9,9 +9,11 @@ Visit https://shadowforests.github.io/VoiceToSpeech/ to use Voice to Speech.
 ## Features
 
 - Live speech recognition via Web Speech API (only on Chrome).
-- Low latency voice-to-speech by using interim speech recognition results.
+- Low latency Voice-to-Speech by using interim speech recognition results.
+- Alternative Text-to-Speech input for fine control of output.
 - Auto translation from input voice language to output speech language.
-- Large selection of languages and dialects for speech recognition and text-to-speech.
+- Large selection of languages and dialects for speech recognition and voices.
+- Includes support for voices on your computer and built in to your browser.
 - Customize audio input and output devices.
 - Customize output volume, as well as pitch and rate for select voices.
 - Live speech output transcript with playback support for all transcript entries.
@@ -29,6 +31,8 @@ Visit https://shadowforests.github.io/VoiceToSpeech/ to use Voice to Speech.
 - **Output Volume**: Change the speech synthesis output volume. You can also press mute so that only the transcript is recorded without speech synthesis.
 - **Pitch/Rate**: Change the speech synthesis pitch and rate (only supported with Voice Set A).
 - **Show Transcript**: Toggles a live speech output transcript with timestamps and playback for any past speech synthesis result.
+- **Show Timestamps**: Toggles the visibility of timestamps in the transcript.
+- **Show Text to Speech**: Toggles the text to speech input box.
 - **Show Diagnostics**: Toggles live diagnostics for speech recognition output, confidence, and errors.
 - **Low-Latency**: Toggles responding to interim speech recognition results for less delay between voice input and speech output. This may result in less accurate results.
 - **Translation**: Toggles auto translation between the input and output languages. Low-Latency is not supported with Translation enabled.

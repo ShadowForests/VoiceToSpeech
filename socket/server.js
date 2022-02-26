@@ -5,11 +5,11 @@ const fs = require("fs");
 let sequenceNumberByClient = new Map();
 
 function write_data(data, file) {
-	var stream = fs.createWriteStream(file);
-	stream.once('open', function(fd) {
-	  stream.write(data);
-	  stream.end();
-	});
+  var stream = fs.createWriteStream(file);
+  stream.once('open', function(fd) {
+    stream.write(data);
+    stream.end();
+  });
 }
 
 // event fired every time a new client connects:

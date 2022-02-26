@@ -1,6 +1,6 @@
-var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
-var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList;
-var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;
+var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition || mozSpeechRecognition || msSpeechRecognition;
+// var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList || mozSpeechGrammarList || msSpeechGrammarList;
+// var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent || mozSpeechGrammarList || msSpeechGrammarList;
 
 console.log = function disableLog() {};
 
@@ -493,34 +493,14 @@ function gotLanguages() {
     langInputSelect.appendChild(option);
   }
 
+  // Output
   const voices = speechSynthesis.getVoices();
   if (rvLangsEnabled || voices.length > 0) {
-    // Output
-    // Header
-    const header1 = document.createElement('option');
-    header1.value = 'header';
-    header1.text = '🔊 Voice Set A [Special]';
-    langOutputSelect.appendChild(header1);
-
-    // Voice Set A
-    for (let i = 0; i < rvLangs.length; i += 1) {
-      const option = document.createElement('option');
-      option.value = rvLangs[i][0];
-      option.text = rvLangs[i][1];
-      langOutputSelect.appendChild(option);
-    }
-
-    // Divider
-    const divider = document.createElement('option');
-    divider.value = 'divider';
-    divider.text = '';
-    langOutputSelect.appendChild(divider);
-
     // Header
     const header2 = document.createElement('option');
     header2.value = 'header';
     // header2.text = "🔊 Language Voices"
-    header2.text = '🔊 Voice Set B [Normal]';
+    header2.text = '🔊 Voice Set A [Normal]';
     langOutputSelect.appendChild(header2);
 
     // Output Languages
@@ -528,6 +508,26 @@ function gotLanguages() {
       const option = document.createElement('option');
       option.value = outputLangs[i][0];
       option.text = outputLangs[i][1];
+      langOutputSelect.appendChild(option);
+    }
+    
+    // Divider
+    const divider = document.createElement('option');
+    divider.value = 'divider';
+    divider.text = '';
+    langOutputSelect.appendChild(divider);
+
+    // Header
+    const header1 = document.createElement('option');
+    header1.value = 'header';
+    header1.text = '🔊 Voice Set B [Special]';
+    langOutputSelect.appendChild(header1);
+
+    // Voice Set A
+    for (let i = 0; i < rvLangs.length; i += 1) {
+      const option = document.createElement('option');
+      option.value = rvLangs[i][0];
+      option.text = rvLangs[i][1];
       langOutputSelect.appendChild(option);
     }
     
@@ -558,11 +558,11 @@ function gotLanguages() {
         langOutputSelect.appendChild(option);
       }
       speechSynthesis.onvoiceschanged = null;
-  
+
       // Set default lang selections
       langInputSelect.selectedIndex = 45;
-      // langOutputSelect.selectedIndex = voices.length + 3 + 17; // 3 = divider + headers
-      langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
+      // langOutputSelect.selectedIndex = rvLangs.length + 3 + 17; // 3 = divider + headers
+      langOutputSelect.selectedIndex = 18;
     }
   } else {
     // Output Languages
@@ -1008,6 +1008,9 @@ function appendTranscript(text, link) {
   transcriptTime.setAttribute('class', 'transcript-time unselectable');
   transcriptTime.setAttribute('unselectable', 'on');
   transcriptTime.textContent = getTranscriptTime();
+  if (!$timestampsButton.prop('checked')) {
+    transcriptTime.style.display = 'none';
+  }
 
   const transcriptText = document.createElement('div');
   transcriptText.setAttribute('class', 'transcript-text');
@@ -1108,59 +1111,17 @@ function speechButton() {
 
 // Translation
 
-// const corsApiUrl = 'https://cors-anywhere.herokuapp.com/';
-const corsApiUrl = '';
-function getTranslationPromise(sourceLang, targetLang, sourceText) {
-  const xhr = new XMLHttpRequest();
-
-  return new Promise((resolve, reject) => {
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState !== 4) {
-        return;
-      }
-
-      if (xhr.status === 200) {
-        // console.info('SUCCESS', xhr.responseText);
-        try {
-          if (translateApi === 0) {
-            resolve(JSON.parse(xhr.responseText)[0][0][0]);
-          } else {
-            resolve(JSON.parse(xhr.responseText).text[0]);
-          }
-        } catch (err) {
-          reject(err);
-        }
-      } else {
-        console.warn('request_error');
-        reject('request_error');
-      }
-    };
-
-    let url = '';
-    if (translateApi === 0) {
-      // Example: https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=en-US&tl=ja-JP&q=hello
-      url = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=${sourceLang}&tl=${targetLang}&q=${encodeURI(sourceText)}`;
-    } else {
-      // Example: https://dictionary.yandex.net/dicservice.json/queryCorpus?ui=en&srv=tr-text&sid=a0cd5513.5d2820d8.49d0adca&dst=&flags=39&maxlen=200&lang=en-ru&src=this%20is%20a%20test
-      url = `https://translate.yandex.net/api/v1.5/tr.json/translate?key=trnsl.1.1.20190713T000625Z.d2c1eb1a0a0fc57b.a63c0da34996c0eeb5bee8a727b064ed53fa8424&lang=${sourceLang.split("-")[0]}-${targetLang.split("-")[0]}&text=${encodeURI(sourceText)}`;
-    }
-
-    xhr.open('GET', corsApiUrl + url);
-    xhr.send();
-  });
-}
-
 async function getTranslation(sourceLang, targetLang, sourceText) {
   let translation = '';
   try {
-    translation = await getTranslationPromise(sourceLang, targetLang, sourceText);
+    translation = await window.gtranslate(sourceText, { from: sourceLang, to: targetLang });
   } catch (err) {
     console.error(err);
     console.info('Trying different api...');
     // Switch translation api on error
     translateApi = 1 - translateApi;
     try {
-      translation = await getTranslationPromise(sourceLang, targetLang, sourceText);
+      translation = await window.ytranslate(sourceText, { from: sourceLang, to: targetLang });
     } catch (err) {
       console.error(err);
       throw 'Could not translate due to api error';
@@ -1292,27 +1253,29 @@ let timeoutTimes = 0;
 
 // Used by transcript play button
 async function playTranscriptAudio(elem, audioURL, stop = false) {
-  const element = $(elem);
-  if (element.children('i').hasClass('play')) {
-    speechPlaying = false;
-    const activeAudioElement = $('.active-audio');
-    try {
-      activeAudioElement
-        .children('i')[0]
-        .setAttribute('class', 'play circle outline icon');
-      activeAudioElement.removeClass('active-audio');
-    } catch (err) {
-      // Do nothing
+  if (!mute) {
+    const element = $(elem);
+    if (element.children('i').hasClass('play')) {
+      speechPlaying = false;
+      const activeAudioElement = $('.active-audio');
+      try {
+        activeAudioElement
+          .children('i')[0]
+          .setAttribute('class', 'play circle outline icon');
+        activeAudioElement.removeClass('active-audio');
+      } catch (err) {
+        // Do nothing
+      }
+      hideTranscriptHover(activeAudioElement.parent());
+      element.addClass('active-audio');
+      element.children('i')[0].setAttribute('class', 'stop circle outline icon');
+      playAudio(audioURL, stop, true);
+    } else {
+      speechPlaying = false;
+      audio.load();
+      element.removeClass('active-audio');
+      element.children('i')[0].setAttribute('class', 'play circle outline icon');
     }
-    hideTranscriptHover(activeAudioElement.parent());
-    element.addClass('active-audio');
-    element.children('i')[0].setAttribute('class', 'stop circle outline icon');
-    playAudio(audioURL, stop, true);
-  } else {
-    speechPlaying = false;
-    audio.load();
-    element.removeClass('active-audio');
-    element.children('i')[0].setAttribute('class', 'play circle outline icon');
   }
 }
 
@@ -1353,9 +1316,9 @@ async function playAudio(audioURL, stop, fromTranscript) {
   if (stop) {
     audio.load();
   }
-  audio.setSinkId(audioDestination).catch((err) => {
-    // Do nothing
-  });
+  try {
+    audio.setSinkId(audioDestination);
+  } catch(err) {}
   audio.volume = volume / 100.0;
   speechPlaying = true;
   audio.onended = function onended() {
@@ -1446,7 +1409,8 @@ async function playTTS(speech, direct) {
     const speechText = speech.join(' ');
     console.info(`Speech: ${speechText}`);
 
-    speech = speech.join('-');
+    // speech = speech.join('-');
+    speech = encodeURI(speechText);
     if (speech === '') {
       return;
     }
