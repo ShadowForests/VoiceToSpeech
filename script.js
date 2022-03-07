@@ -988,10 +988,11 @@ function checkTime(i) {
 
 function getTranscriptTime() {
   const today = new Date();
-  const h = today.getHours();
+  let h = today.getHours();
   let m = today.getMinutes();
   let s = today.getSeconds();
   // add a zero in front of numbers<10
+  h = checkTime(h);
   m = checkTime(m);
   s = checkTime(s);
   const timestamp = `${h}:${m}:${s}`;
@@ -1438,6 +1439,11 @@ async function playTTS(speech, direct) {
       // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
       audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speech}`;
     }
+    if (altLang !== null) {
+      socket.emit('speech', speechText, inputLang, altLang[0], translateEnabled, lowlatencyEnabled, direct);
+    } else {
+      socket.emit('speech', speechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct);
+    }
     appendTranscript(speechText, audioURL);
     playAudio(audioURL, false, false);
   } catch (err) {
@@ -1457,7 +1463,7 @@ async function playBufferedTTS(speech, split = true) {
     // Repeatedly delay 100ms if speech continues playing
     await wait(100);
   }
-  playTTS(speechBuffer.shift());
+  playTTS(speechBuffer.shift(), false);
 }
 
 // intspeech = interim_speech
@@ -1615,7 +1621,6 @@ function testSpeech() {
           confidenceResult = '—';
           playInterimTTS('');
         } else {
-          socket.emit('speech', speechResult);
           playInterimTTS(speechResult);
         }
         diagnosticPara.textContent = `Speech received: ${speechResult}`;
@@ -1628,7 +1633,6 @@ function testSpeech() {
         speechResult = '—';
         confidenceResult = '—';
       } else {
-        socket.emit('speech', speechResult);
         playBufferedTTS(speechResult, true);
       }
       diagnosticPara.textContent = `Speech received: ${speechResult}`;
@@ -1660,12 +1664,12 @@ function testSpeech() {
 
   recognition.onaudiostart = function onaudiostart() {
     // Fired when the user agent has started to capture audio.
-    console.info('SpeechRecognition.onaudiostart');
+    console.info('SpeechRecognition.audiostart');
   };
 
   recognition.onaudioend = function onaudioend() {
     // Fired when the user agent has finished capturing audio.
-    console.info('SpeechRecognition.onaudioend');
+    console.info('SpeechRecognition.audioend');
     if (buttonState === 1) {
       restartSpeech();
     }
@@ -1673,11 +1677,11 @@ function testSpeech() {
 
   recognition.onend = function onend() {
     // Fired when the speech recognition service has disconnected.
-    console.info('SpeechRecognition.onend');
+    console.info('SpeechRecognition.end');
 
     if (buttonState === -1) {
-      console.info('SpeechRecognition.onstopped');
-      socket.emit('status', 'onstopped');
+      console.info('SpeechRecognition.stopped');
+      socket.emit('status', 'stopped');
       buttonState = 0;
       testButtonInfo.textContent = 'Press start to begin speech recognition';
       testButton.textContent = 'Start';
@@ -1690,21 +1694,21 @@ function testSpeech() {
     // Fired when the speech recognition service returns a final result
     // with no significant recognition. This may involve some degree of
     // recognition, which doesn't meet or exceed the confidence threshold.
-    console.info('SpeechRecognition.onnomatch');
+    console.info('SpeechRecognition.nomatch');
   };
 
   recognition.onsoundstart = function onsoundstart() {
     // Fired when any sound — recognisable speech or not — has been detected.
     if (buttonState === 1) {
-      console.info('SpeechRecognition.onsoundstart');
+      console.info('SpeechRecognition.soundstart');
     }
   };
 
   recognition.onsoundend = function onsoundend() {
     // Fired when any sound — recognisable speech or not — has stopped being detected.
     if (buttonState === 1) {
-      console.info('SpeechRecognition.onsoundend');
-      socket.emit('status', 'onsoundend');
+      console.info('SpeechRecognition.soundend');
+      socket.emit('status', 'soundend');
     }
   };
 
@@ -1712,15 +1716,16 @@ function testSpeech() {
     // Fired when sound that is recognised by the speech
     // recognition service as speech has been detected.
     if (buttonState === 1) {
-      console.info('SpeechRecognition.onspeechstart');
-      socket.emit('status', 'onspeechstart');
+      console.info('SpeechRecognition.speechstart');
+      socket.emit('status', 'speechstart');
     }
   };
+
   recognition.onstart = function onstart() {
     // Fired when the speech recognition service has begun
     // listening to incoming audio with intent to recognize
     // grammars associated with the current SpeechRecognition.
-    console.info('SpeechRecognition.onstart');
+    console.info('SpeechRecognition.start');
   };
 }
 

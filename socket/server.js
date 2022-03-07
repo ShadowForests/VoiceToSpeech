@@ -1,5 +1,8 @@
-const io = require("socket.io"),
-const server = io.listen(3000),
+const io = require("socket.io")({
+  cors: true,
+  origins: ["*"]
+});
+const server = io.listen(3000);
 const fs = require("fs");
 
 let sequenceNumberByClient = new Map();
@@ -26,13 +29,13 @@ server.on("connection", (socket) => {
 
   // Handle incoming messages from clients.
   socket.on('speech', function (data) {
-    console.info(data);
+    console.info(`Speech: ${data}`);
     write_data(data, "vts_speech.txt");
   });
 
   // Handle incoming messages from clients.
   socket.on('status', function (data) {
-    console.info(data);
+    console.info(`Status: ${data}`);
     write_data(data, "vts_status.txt");
   });
 });
