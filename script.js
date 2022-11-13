@@ -23,7 +23,9 @@ const audioOutputText = document.querySelector('p#audioOutputText');
 const $optionsButton = $('button#optionsButton');
 const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
-const $timestampsButton = $('input#timestampsCheckbox');
+const $toggleTimestampsButton = $('div#toggleTimestampsButton');
+const $clearTranscriptButton = $('div#clearTranscriptButton');
+const $socketButton = $('input#socketCheckbox')
 const $ttsButton = $('input#ttsCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
@@ -50,6 +52,9 @@ const $pitchThumbSS = $('#pitchThumbSS');
 const $rateSliderSS = $('#rateSliderSS');
 const $rateThumbSS = $('#rateThumbSS');
 
+let socketEnabled = true;
+let timestampsEnabled = true;
+let speakOriginalText = true;
 let buttonState = 0;
 let translateApi = 0;
 const interimWait = 300;
@@ -384,6 +389,7 @@ const rvLangs = [
   ['hr-HR&gender=male', 'Serbo-Croatian Male'],
   ['sw-TZ&gender=male', 'Swahili Male'],
   ['cy&gender=male', 'Welsh Male'],
+  ['Justin', 'Justin'],
 ];
 
 /*
@@ -923,15 +929,26 @@ $transcriptButton.click(() => {
   }
 });
 
-$timestampsButton.click(() => {
-  if ($timestampsButton.prop('checked')) {
-    for (let transcriptTime of document.querySelectorAll('div#transcriptTime')) {
-      transcriptTime.style.display = 'block';
-    }
+$socketButton.click(() => {
+  if ($socketButton.prop('checked')) {
+    socketEnabled = true;
   } else {
-    for (let transcriptTime of document.querySelectorAll('div#transcriptTime')) {
-      transcriptTime.style.display = 'none';
-    }
+    socketEnabled = false;
+  }
+});
+
+$toggleTimestampsButton.click(() => {
+  timestampsEnabled = !timestampsEnabled;
+  if (timestampsEnabled) {
+    document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
+  } else {
+    document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "none");
+  }
+});
+
+$clearTranscriptButton.click(() => {
+  while (transcript.firstChild) {
+    transcript.firstChild.remove();
   }
 });
 
@@ -1009,7 +1026,7 @@ function appendTranscript(text, link) {
   transcriptTime.setAttribute('class', 'transcript-time unselectable');
   transcriptTime.setAttribute('unselectable', 'on');
   transcriptTime.textContent = getTranscriptTime();
-  if (!$timestampsButton.prop('checked')) {
+  if (!timestampsEnabled) {
     transcriptTime.style.display = 'none';
   }
 
@@ -1359,11 +1376,11 @@ async function playTTSInput() {
   const speech = $ttsInput.val();
   if (speech !== "") {
     $ttsInput.val("");
-    playTTS([speech], true);
+    playTTS([speech], true, false);
   }
 }
 
-async function playTTS(speech, direct) {
+async function playTTS(speech, direct, interimAddition = false, padSpacing = true) {
   // ~console.info("playTTS");
   if (speech.length === 0 || (buttonState !== 1 && direct == false)) {
     return;
@@ -1409,6 +1426,13 @@ async function playTTS(speech, direct) {
 
     const speechText = speech.join(' ');
     console.info(`Speech: ${speechText}`);
+    if (socketEnabled) {
+      if (altLang !== null) {
+        socket.emit('speech', speechText, inputLang, altLang[0], translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
+      } else {
+        socket.emit('speech', speechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
+      }
+    }
 
     // speech = speech.join('-');
     speech = encodeURI(speechText);
@@ -1439,10 +1463,8 @@ async function playTTS(speech, direct) {
       // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
       audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speech}`;
     }
-    if (altLang !== null) {
-      socket.emit('speech', speechText, inputLang, altLang[0], translateEnabled, lowlatencyEnabled, direct);
-    } else {
-      socket.emit('speech', speechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct);
+    if (outputLang == "Justin") {
+      audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speech}`;
     }
     appendTranscript(speechText, audioURL);
     playAudio(audioURL, false, false);
@@ -1453,7 +1475,7 @@ async function playTTS(speech, direct) {
   }
 }
 
-async function playBufferedTTS(speech, split = true) {
+async function playBufferedTTS(speech, interimAddition = false, split = true) {
   if (split) {
     speech = speech.split(' ');
   }
@@ -1463,7 +1485,11 @@ async function playBufferedTTS(speech, split = true) {
     // Repeatedly delay 100ms if speech continues playing
     await wait(100);
   }
-  playTTS(speechBuffer.shift(), false);
+  padSpacing = false;
+  if (interimAddition) {
+    padSpacing = !split;
+  }
+  playTTS(speechBuffer.shift(), false, interimAddition, padSpacing);
 }
 
 // intspeech = interim_speech
@@ -1493,7 +1519,8 @@ async function playSpacedLangTTS(intspeech) {
   // If the interim speech did not change after the wait, there was enough silence to begin speaking
   if (lastIntspeechList === intspeechList) {
     intspeechIndex = intspeechList.length;
-    playBufferedTTS(intspeechList.splice(currIntspeechIndex), false);
+    interimAddition = currIntspeechIndex > 0;
+    playBufferedTTS(intspeechList.splice(currIntspeechIndex), interimAddition, false);
   }
 }
 
@@ -1514,7 +1541,8 @@ async function playNonSpacedLangTTS(intspeech) {
   // If the interim speech did not change after the wait, there was enough silence to begin speaking
   if (lastIntspeech === intspeech && intspeechLength < intspeech.length) {
     intspeechLength = intspeech.length;
-    playBufferedTTS(intspeech.slice(currIntspeechLength), true);
+    interimAddition = currIntspeechLength > 0;
+    playBufferedTTS(intspeech.slice(currIntspeechLength), interimAddition, true);
   }
 }
 
@@ -1633,7 +1661,7 @@ function testSpeech() {
         speechResult = '—';
         confidenceResult = '—';
       } else {
-        playBufferedTTS(speechResult, true);
+        playBufferedTTS(speechResult, false, true);
       }
       diagnosticPara.textContent = `Speech received: ${speechResult}`;
       outputConfidence.textContent = `Confidence: ${confidenceResult}`;
@@ -1681,7 +1709,9 @@ function testSpeech() {
 
     if (buttonState === -1) {
       console.info('SpeechRecognition.stopped');
-      socket.emit('status', 'stopped');
+      if (socketEnabled) {
+        socket.emit('status', 'stopped');
+      }
       buttonState = 0;
       testButtonInfo.textContent = 'Press start to begin speech recognition';
       testButton.textContent = 'Start';
@@ -1708,7 +1738,9 @@ function testSpeech() {
     // Fired when any sound — recognisable speech or not — has stopped being detected.
     if (buttonState === 1) {
       console.info('SpeechRecognition.soundend');
-      socket.emit('status', 'soundend');
+      if (socketEnabled) {
+        socket.emit('status', 'soundend');
+      }
     }
   };
 
@@ -1717,7 +1749,9 @@ function testSpeech() {
     // recognition service as speech has been detected.
     if (buttonState === 1) {
       console.info('SpeechRecognition.speechstart');
-      socket.emit('status', 'speechstart');
+      if (socketEnabled) {
+        socket.emit('status', 'speechstart');
+      }
     }
   };
 

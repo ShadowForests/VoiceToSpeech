@@ -11,8 +11,8 @@
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico?">
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.7.6/dist/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -54,6 +54,13 @@
         Transcript
         <div class="right floated hover-button">
           <i class="close icon img-centered button-medium" onclick="$transcriptButton.click()"></i>
+        </div>
+        <div class="ui right floated dropdown hover-button item">
+          <i class="ellipsis horizontal icon"></i>
+          <div class="menu">
+            <div class="item" id="toggleTimestampsButton">Toggle Timestamps</div>
+            <div class="item" id="clearTranscriptButton">Clear Transcript</div>
+          </div>
         </div>
       </div>
       <div id="transcript" class="scroller ui bottom attached raised segment transcript options"></div>
@@ -140,7 +147,7 @@
 
             <div class="row no-bottom-padding">
               <div class="eight wide column">
-                <p class="left floated option-text">Show Transcript</p>
+                <p class="left floated option-text">Transcript</p>
                 <div class="ui right floated toggle checkbox">
                   <input id="transcriptCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
@@ -148,9 +155,9 @@
                 </div>
 
                 <div class="eight wide column">
-                  <p class="left floated option-text">Show Timestamps</p>
+                  <p class="left floated option-text">Socket</p>
                 <div class="ui right floated toggle checkbox">
-                  <input id="timestampsCheckbox" type="checkbox" name="public" checked="true">
+                  <input id="socketCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
                 </div>
               </div>
@@ -158,7 +165,7 @@
 
             <div class="row no-bottom-padding small-top-padding">
               <div class="eight wide column">
-                <p class="left floated option-text">Show Text to Speech</p>
+                <p class="left floated option-text">Text to Speech</p>
                 <div class="ui right floated toggle checkbox">
                   <input id="ttsCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
@@ -166,7 +173,7 @@
                 </div>
 
                 <div class="eight wide column">
-                  <p class="left floated option-text">Show Diagnostics</p>
+                  <p class="left floated option-text">Diagnostics</p>
                 <div class="ui right floated toggle checkbox">
                   <input id="diagnosticsCheckbox" type="checkbox" name="public" checked="true">
                   <label></label>
