@@ -107,7 +107,7 @@
               <div class="wide column">
                 <p class="option-text no-bottom-padding">Output Volume</p>
                 <div class="left floated">
-                  <i class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute(this)"></i>
+                  <i id="volumeMute" class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute()"></i>
                 </div>
                 <div id="volumeSlider" class="ui slider slider-full right floated">
                   <div class="inner">
@@ -202,7 +202,13 @@
         </div>
 
         <div class="actions bottom-margin-media">
-          <span>Created by ShadowForest </span><span class="extra-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
+          <div class="bottom-margin-media left floated">
+            <i id="resetOptions" class="refresh icon img-centered hover-button" onclick="resetCookies()"></i>
+            <span>Reset Options</span>
+          </div>
+          <div class="bottom-margin-media">
+            <span>Created by ShadowForest </span><span class="extra-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
+          </div>
         </div>
       </div>
 

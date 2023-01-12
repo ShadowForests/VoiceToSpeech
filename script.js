@@ -32,11 +32,6 @@ function getStringCookie(cname, cdefault) {
     return result === undefined ? cdefault : result;
 }
 
-function updateCookies() {
-    setCookie('langInputSelect', langInputSelect.selectedIndex);
-    setCookie('langOutputSelect', langOutputSelect.selectedIndex);
-}
-
 const diagnosticPara = document.querySelector('label#outputDiag');
 const outputConfidence = document.querySelector('label#outputConfidence');
 const diagnostics = document.querySelector('p#diagnostics');
@@ -65,6 +60,7 @@ const langInputSelect = document.querySelector('select#searchSelectInput');
 const langOutputSelect = document.querySelector('select#searchSelectOutput');
 
 const $volumeSlider = $('#volumeSlider');
+const $volumeMute = $('#volumeMute');
 const $volumeFill = $('#volumeFill');
 const $volumeThumb = $('#volumeThumb');
 const $pitchSlider = $('#pitchSlider');
@@ -1049,7 +1045,11 @@ function gotLanguages() {
     for (let i = 0; i < inputLangs.length; i += 1) {
         const option = document.createElement('option');
         option.value = inputLangs[i][0];
-        option.text = inputLangs[i][1];
+        if (inputLangs[i][1] === inputLangs[i][2]) {
+            option.text = `${inputLangs[i][1]}`;
+        } else {
+            option.text = `${inputLangs[i][1]} [${inputLangs[i][2]}]`;
+        }
         langInputSelect.appendChild(option);
     }
 
@@ -1070,8 +1070,9 @@ function gotLanguages() {
     }
 
     // Set default lang selections
-    langInputSelect.selectedIndex = 45;
-    langOutputSelect.selectedIndex = 24;
+    langInputSelect.selectedIndex = getNumericCookie('vts-langInputSelect', 45);
+    langOutputSelect.selectedIndex = getNumericCookie('vts-langOutputSelect', 24);
+    updateOutputLangOptions();
 }
 
 function fillLanguages() {
@@ -1163,34 +1164,48 @@ let volumeSliderActive = false;
 let pitchSliderActive = false;
 let rateSliderActive = false;
 
+function getSliderCookiesAndUpdate() {
+    volume = getNumericCookie('volume', volume);
+    $volumeSlider.slider.value = volume;
+
+    rate = getNumericCookie('rate', rate);
+    $rateSlider.slider.value = rate;
+
+    pitch = getNumericCookie('pitch', pitch);
+    $pitchSlider.slider.value = pitch;
+}
+
+getSliderCookiesAndUpdate();
+
 // Used by mute button
-function toggleMute(elem) {
-    const element = $(elem);
-    if (element.hasClass('up')) {
+function toggleMute() {
+    if ($volumeMute.hasClass('up')) {
         mute = true;
-        element.removeClass('up');
-        element.addClass('mute');
-        element.parent().css('margin-left', '0px !important');
+        $volumeMute.removeClass('up');
+        $volumeMute.addClass('mute');
+        $volumeMute.parent().css('margin-left', '0px !important');
         $volumeSlider.css('pointer-events', 'none');
         $volumeThumb.css('background-color', 'lightgray');
         $volumeFill.css('background-color', 'lightgray');
     } else {
         mute = false;
-        element.removeClass('mute');
-        element.addClass('up');
+        $volumeMute.removeClass('mute');
+        $volumeMute.addClass('up');
         $volumeSlider.css('pointer-events', 'auto');
         $volumeThumb.css('background-color', 'white');
         $volumeFill.css('background-color', 'black');
     }
+    setCookie('vts-mute', mute);
 }
 
 $volumeSlider.slider({
     min: 0,
     max: 100,
-    start: 100,
+    start: volume,
     step: 0,
     onMove(data) {
         volume = data.toFixed();
+        setCookie('vts-volume', volume);
         try {
             $volumeThumb.popup('change content', `${volume}%`).popup('reposition');
         } catch (err) {
@@ -1224,10 +1239,11 @@ $volumeThumb.mouseleave(() => {
 $pitchSlider.slider({
     min: 0,
     max: 2,
-    start: 1,
+    start: pitch,
     step: 0.1,
     onMove(data) {
         pitch = data.toFixed(1);
+        setCookie('vts-pitch', pitch);
         try {
             $pitchThumb.popup('change content', `${pitch}`).popup('reposition');
         } catch (err) {
@@ -1261,10 +1277,11 @@ $pitchThumb.mouseleave(() => {
 $rateSlider.slider({
     min: 0,
     max: 2,
-    start: 1,
+    start: rate,
     step: 0.1,
     onMove(data) {
         rate = data.toFixed(1);
+        setCookie('vts-rate', rate);
         try {
             $rateThumb.popup('change content', `${rate}`).popup('reposition');
         } catch (err) {
@@ -1313,7 +1330,7 @@ function resetDropdownInput(element) {
     );
 }
 
-$('select#searchSelectOutput').change(() => {
+function updateOutputLangOptions() {
     const outputLang = getOutputLang();
     const altLang = outputLang.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
     let sLang = null;
@@ -1328,6 +1345,10 @@ $('select#searchSelectOutput').change(() => {
         $('#extraVoiceOptions').attr('style', 'display: none !important');
         audioOutputText.textContent = 'Output Device'
     }
+}
+
+$('select#searchSelectOutput').change(() => {
+    updateOutputLangOptions();
 });
 
 let initOptions = true;
@@ -1411,9 +1432,11 @@ $transcriptButton.click(() => {
         transcriptHeader.style.display = 'block';
         transcript.style.display = 'block';
         scrollTranscript();
+        setCookie('vts-transcriptEnabled', true);
     } else {
         transcriptHeader.style.display = 'none';
         transcript.style.display = 'none';
+        setCookie('vts-transcriptEnabled', false);
     }
 });
 
@@ -1423,10 +1446,12 @@ $socketButton.click(() => {
     } else {
         socketEnabled = false;
     }
+    setCookie('vts-socketEnabled', socketEnabled);
 });
 
 $toggleTimestampsButton.click(() => {
     timestampsEnabled = !timestampsEnabled;
+    setCookie('vts-timestampsEnabled', timestampsEnabled);
     if (timestampsEnabled) {
         document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
     } else {
@@ -1444,22 +1469,27 @@ $ttsButton.click(() => {
     if ($ttsButton.prop('checked')) {
         ttsHeader.style.display = 'block';
         ttsArea.style.display = 'block';
+        setCookie('vts-ttsEnabled', true);
     } else {
         ttsHeader.style.display = 'none';
         ttsArea.style.display = 'none';
+        setCookie('vts-ttsEnabled', false);
     }
 });
 
 $diagnosticsButton.click(() => {
     if ($diagnosticsButton.prop('checked')) {
         diagnostics.style.display = 'block';
+        setCookie('vts-diagnosticsEnabled', true);
     } else {
         diagnostics.style.display = 'none';
+        setCookie('vts-diagnosticsEnabled', false);
     }
 });
 
 $lowlatencyButton.click(() => {
     lowlatencyEnabled = $lowlatencyButton.prop('checked');
+    setCookie('vts-lowlatencyEnabled', lowlatencyEnabled);
     if (lowlatencyEnabled && $translateButton.prop('checked')) {
         $translateButton.click();
     }
@@ -1470,6 +1500,7 @@ $lowlatencyButton.click(() => {
 
 $translateButton.click(() => {
     translateEnabled = $translateButton.prop('checked');
+    setCookie('vts-translateEnabled', translateEnabled);
     if ($translateButton.prop('checked')) {
         if ($lowlatencyButton.prop('checked')) {
             $lowlatencyButton.click();
@@ -1687,11 +1718,28 @@ function gotDevices(deviceInfos) {
             select.value = values[selectorIndex];
         }
     });
+
+    let found = false;
+    let audioOutputSelectValue = getStringCookie('vts-audioOutputSelect', audioOutputSelect.value);
+    for (let option of audioOutputSelect.options) {
+        if (option.value == audioOutputSelectValue) {
+            audioOutputSelect.value = audioOutputSelectValue;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        audioOutputSelect.value = 'default';
+    }
+
+    changeAudioDestination();
 }
 
 let audioDestination;
 function changeAudioDestination() {
     audioDestination = audioOutputSelect.value;
+    setCookie('vts-audioOutputSelect', audioOutputSelect.value);
 }
 
 /*
@@ -1741,8 +1789,13 @@ navigator.mediaDevices
     .then(gotDevices)
     .catch(handleError);
 
+function updateLangCookies() {
+    setCookie('vts-langInputSelect', langInputSelect.selectedIndex);
+    setCookie('vts-langOutputSelect', langOutputSelect.selectedIndex);
+}
+
 function restartSpeech() {
-    updateCookies();
+    updateLangCookies();
     if (buttonState === 1) {
         recognition = new SpeechRecognition();
         testSpeech();
@@ -1751,7 +1804,7 @@ function restartSpeech() {
 
 audioOutputSelect.onchange = changeAudioDestination;
 langInputSelect.onchange = restartSpeech;
-langOutputSelect.onchange = updateCookies;
+langOutputSelect.onchange = updateLangCookies;
 
 //
 
@@ -1906,6 +1959,12 @@ async function playTTSInput() {
 }
 
 async function playTTS(speech, direct, interimAddition = false, padSpacing = true) {
+    // Update device names
+    await navigator.mediaDevices
+        .enumerateDevices()
+        .then(gotDevices)
+        .catch(handleError);
+
     // ~console.info("playTTS");
     if (speech.length === 0 || (buttonState !== 1 && direct == false)) {
         return;
@@ -1934,6 +1993,7 @@ async function playTTS(speech, direct, interimAddition = false, padSpacing = tru
             translationLang = outputLang;
         }
         
+        let untranslatedSpeechText = speech.filter(el => el).join(' ');
         if (translateEnabled) {
             let translateSuccess = false;
             // if (altLang !== null) {
@@ -1975,9 +2035,9 @@ async function playTTS(speech, direct, interimAddition = false, padSpacing = tru
         console.info(`Speech: ${speechText}`);
         if (socketEnabled) {
             if (translationLang !== null) {
-                socket.emit('speech', speechText, inputLang, translationLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
+                socket.emit('speech', speechText, untranslatedSpeechText, inputLang, translationLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
             } else {
-                socket.emit('speech', speechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
+                socket.emit('speech', speechText, untranslatedSpeechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
             }
         }
 
@@ -2234,6 +2294,8 @@ function testSpeech() {
     recognition.onerror = function onerror(event) {
         // testButton.disabled = false;
         // testButton.textContent = 'Start';
+        console.info('SpeechRecognition.onerror');
+        console.info(event);
         if (buttonState === 1) {
             diagnosticPara.textContent = `Error occurred in recognition: ${event.error}`;
             if (event.error === 'audio-capture') {
@@ -2321,5 +2383,48 @@ testButton.addEventListener('click', speechButton);
 // optionsButton.addEventListener('click', toggleOptions);
 // transcriptButton.addEventListener('click', toggleTranscript);
 
-langInputSelect.selectedIndex = getNumericCookie('langInputSelect', langInputSelect.selectedIndex);
-langOutputSelect.selectedIndex = getNumericCookie('langOutputSelect', langOutputSelect.selectedIndex);
+function resetOptions() {
+    for (const key of Object.keys(Cookies.get())) {
+        if (key.startsWith('vts-')) {
+            Cookies.remove(key);
+        }
+    }
+
+    getCookiesAndUpdate();
+}
+
+async function getCookiesAndUpdate() {
+    if (getBooleanCookie('vts-mute', true) && !mute) {
+        toggleMute();
+    }
+
+    if (!getBooleanCookie('vts-transcriptEnabled', true)) {
+        $transcriptButton.click();
+    }
+
+    if (!getBooleanCookie('vts-socketEnabled', true) && socketEnabled) {
+        $socketButton.click();
+    }
+
+    if (!getBooleanCookie('vts-ttsEnabled', true)) {
+        $ttsButton.click();
+    }
+
+    if (!getBooleanCookie('vts-diagnosticsEnabled', true)) {
+        $diagnosticsButton.click();
+    }
+
+    if (!getBooleanCookie('vts-lowlatencyEnabled', true) && lowlatencyEnabled) {
+        $lowlatencyButton.click();
+    }
+
+    if (getBooleanCookie('vts-translateEnabled', false) && !translateEnabled) {
+        $translateButton.click();
+    }
+
+    if (!getBooleanCookie('vts-timestampsEnabled', true) && timestampsEnabled) {
+        $toggleTimestampsButton.click();
+    }
+}
+
+getCookiesAndUpdate();
