@@ -35,16 +35,26 @@ function getStringCookie(cname, cdefault) {
 const diagnosticPara = document.querySelector('label#outputDiag');
 const outputConfidence = document.querySelector('label#outputConfidence');
 const diagnostics = document.querySelector('p#diagnostics');
-const testButtonInfo = document.querySelector('p#testButtonInfo');
-const testButton = document.querySelector('button#testButton');
+const startButtonInfo = document.querySelector('p#startButtonInfo');
+const startButton = document.querySelector('button#startButton');
 const outputVoiceText = document.querySelector('p#outputVoiceText');
 const audioOutputText = document.querySelector('p#audioOutputText');
 const $optionsButton = $('button#optionsButton');
+const $resetOptionsButton = $('i#resetOptionsButton');
+const $resetSettingsModal = $('.ui.modal.reset-settings-modal');
+const $resetSettingsNag = $('div#reset-settings-nag');
+const $resetReplacementsModal = $('.ui.modal.reset-replacements-modal');
+const $resetReplacementsNag = $('div#reset-replacements-nag');
 const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
-const $toggleTimestampsButton = $('div#toggleTimestampsButton');
+const $transcriptDropdown = $('div#transcriptDropdown');
+const $transcriptCopy = $('i#transcriptCopy');
+const $timestampsButton = $('div#timestampsCheckbox');
+const $translationsButton = $('div#translationsCheckbox');
 const $clearTranscriptButton = $('div#clearTranscriptButton');
-const $socketButton = $('input#socketCheckbox')
+const $replacementsTable = document.querySelector('table#replacementsTable');
+const $replacementEntries = document.querySelector('tbody#replacementEntries');
+const $socketButton = $('input#socketCheckbox');
 const $ttsButton = $('input#ttsCheckbox');
 const $diagnosticsButton = $('input#diagnosticsCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
@@ -58,6 +68,13 @@ const audioOutputSelect = document.querySelector('select#audioOutput');
 const selectors = [audioInputSelect, audioOutputSelect];
 const langInputSelect = document.querySelector('select#searchSelectInput');
 const langOutputSelect = document.querySelector('select#searchSelectOutput');
+
+const $templates = document.querySelector('div#templates');
+const $replacementEntryTemplate = document.querySelector('table#replacementEntryTemplate').firstElementChild.firstElementChild;
+const $replacementsTableClone = document.querySelector('table#replacementsTableClone');
+const $replacementsTableCloneRowContainer = document.querySelector('table#replacementsTableCloneRowContainer');
+
+$templates.remove();
 
 const $volumeSlider = $('#volumeSlider');
 const $volumeMute = $('#volumeMute');
@@ -74,6 +91,7 @@ const $rateThumbSS = $('#rateThumbSS');
 
 let socketEnabled = true;
 let timestampsEnabled = true;
+let translationsEnabled = true;
 let speakOriginalText = true;
 let buttonState = 0;
 let translateApi = 0;
@@ -925,7 +943,7 @@ outputVoices.sort((a, b) => {
 
 function removeAllChildNodes(parent) {
     while (parent.firstChild) {
-            parent.removeChild(parent.firstChild);
+        parent.removeChild(parent.firstChild);
     }
 }
 
@@ -1151,9 +1169,6 @@ function reduceSpacing(str) {
 
 // Init Elements
 
-$('.dropdown').dropdown({ fullTextSearch: 'exact' });
-// .dropdown()
-
 let mute = false;
 
 let volume = 100;
@@ -1370,6 +1385,9 @@ $optionsButton.click(() => {
             "$('.message').attr('onclick', 'resetDropdownInput(this)');",
         );
 
+        $('.dropdown-search').dropdown({ fullTextSearch: 'exact' });
+        $('.dropdown-select').dropdown();
+
         initOptions = false;
     }
 
@@ -1380,12 +1398,32 @@ $optionsButton.click(() => {
         .catch(handleError);
 
     // Modal setup
-    $('.ui.modal.options-modal')
-        .modal({
-            autofocus: false,
-            duration: 300,
-        })
-        .modal('show');
+    $('.ui.modal.options-modal').modal({
+        autofocus: false,
+        duration: 300,
+    }).modal('show');
+
+    $resetSettingsModal.modal({
+        autofocus: false,
+        duration: 300,
+    });
+
+    $resetReplacementsModal.modal({
+        autofocus: false,
+        duration: 300,
+    });
+
+    $resetOptionsButton.click(() => {
+        resetOptions();
+    });
+
+    // Menu setup
+    $('.pointing.menu.options-menu .item').tab();
+
+    $('.footer-button').popup({
+        inline: true,
+        position: 'bottom right'
+    });
 
     // Slider setup
     $volumeThumb.popup({
@@ -1441,21 +1479,46 @@ $transcriptButton.click(() => {
 });
 
 $socketButton.click(() => {
-    if ($socketButton.prop('checked')) {
-        socketEnabled = true;
-    } else {
-        socketEnabled = false;
-    }
+    socketEnabled = $socketButton.prop('checked');
     setCookie('vts-socketEnabled', socketEnabled);
 });
 
-$toggleTimestampsButton.click(() => {
-    timestampsEnabled = !timestampsEnabled;
-    setCookie('vts-timestampsEnabled', timestampsEnabled);
-    if (timestampsEnabled) {
-        document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
-    } else {
-        document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "none");
+$transcriptCopy.popup({
+    inline: true,
+    position: "top center",
+    on: "click",
+    onVisible: async function() {
+        setTimeout(() => {
+            $transcriptCopy.popup('hide');
+        }, 1000);
+    }
+});
+
+$transcriptDropdown.dropdown({
+    action: 'nothing'
+});
+
+$timestampsButton.checkbox({
+    onChange: function() {
+        timestampsEnabled = $timestampsButton.checkbox('is checked');
+        setCookie('vts-timestampsEnabled', timestampsEnabled);
+        if (timestampsEnabled) {
+            document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
+        } else {
+            document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "none");
+        }
+    }
+});
+
+$translationsButton.checkbox({
+    onChange: function() {
+        translationsEnabled = $translationsButton.checkbox('is checked');
+        setCookie('vts-translationsEnabled', translationsEnabled);
+        if (translationsEnabled) {
+            document.querySelectorAll('div#transcriptTranslation').forEach(e => e.style.display = "block");
+        } else {
+            document.querySelectorAll('div#transcriptTranslation').forEach(e => e.style.display = "none");
+        }
     }
 });
 
@@ -1511,6 +1574,535 @@ $translateButton.click(() => {
     }
 });
 
+// Replacements Table
+// Drag and Drop Reference:
+// https://htmldom.dev/drag-and-drop-table-row/
+// https://github.com/phuocng/html-dom/blob/master/assets/demo/drag-and-drop-table-row/index.html
+
+let draggingEle;
+let draggingRowIndex;
+let replacementsPlaceholder;
+let replacementsTableClone;
+let replacementsBodyClone;
+let isDraggingStarted = false;
+const cellBorderWidth = '1px';
+
+// The current position of mouse relative to the dragging element
+let replacementsX = 0;
+let replacementsY = 0;
+
+// Swap two nodes
+function swapNodes(nodeA, nodeB) {
+    const parentA = nodeA.parentNode;
+    const siblingA = nodeA.nextSibling === nodeB ? nodeA : nodeA.nextSibling;
+
+    // Move `nodeA` to before the `nodeB`
+    nodeB.parentNode.insertBefore(nodeA, nodeB);
+
+    // Move `nodeB` to before the sibling of `nodeA`
+    parentA.insertBefore(nodeB, siblingA);
+}
+
+// Check if `nodeA` is above `nodeB`
+function isNodeAbove(nodeA, nodeB) {
+    // Get the bounding rectangle of nodes
+    const rectA = nodeA.getBoundingClientRect();
+    const rectB = nodeB.getBoundingClientRect();
+
+    return rectA.top < rectB.top + rectB.height / 2;
+}
+
+function addDraggableRecursive(node) {
+    if (node instanceof HTMLInputElement || node instanceof HTMLElement) {
+        node.classList.add('draggable');
+    }
+    for (var i = 0; i < node.childNodes.length; i++) {
+        var child = node.childNodes[i];
+        addDraggableRecursive(child);
+    }
+}
+
+function cloneTable() {
+    const rect = $replacementsTable.getBoundingClientRect();
+
+    replacementsTableClone = $replacementsTableClone.cloneNode(true);
+    replacementsBodyClone = replacementsTableClone.querySelector('tbody');
+    $replacementsTable.parentNode.insertBefore(replacementsTableClone, $replacementsTable);
+
+    // Hide the original table
+    $replacementsTable.style.visibility = 'hidden';
+
+    $replacementEntries.querySelectorAll('tr').forEach(function (row) {
+        // Create a new table from given row
+        const item = document.createElement('div');
+
+        const rowComputedStyle = window.getComputedStyle(row);
+
+        const width = parseFloat(rowComputedStyle.width);
+        const height = parseFloat(rowComputedStyle.height);
+
+        const newTable = $replacementsTableCloneRowContainer.cloneNode(true);
+        newTable.style.width = `${width}px`;
+        newTable.style.height = `${height}px`;
+
+        const newRow = row.cloneNode(true);
+        newTable.appendChild(newRow);
+
+        for (let i = 0; i < newRow.children.length; i++) {
+            const cell = newRow.children[i];
+            addDraggableRecursive(cell);
+            cell.style.borderColor = 'rgba(34, 36, 38, 0.1)';
+            cell.style.borderTopStyle = 'solid';
+            cell.style.borderBottomStyle = 'solid';
+            cell.style.borderTopWidth = `${parseFloat(window.getComputedStyle(row.children[i]).borderTopWidth)}px`;
+            cell.style.borderBottomWidth = '0px';
+            cell.style.maxWidth = `${parseFloat(window.getComputedStyle(row.children[i]).width)}px`;
+            cell.style.maxHeight = `${parseFloat(window.getComputedStyle(row.children[i]).height)}px`;
+
+            const dropdown = cell.querySelector('.replacement-dropdown');
+            if (dropdown !== null) {
+                dropdown.querySelector('.menu').remove();
+            }
+        }
+
+        item.appendChild(newTable);
+        replacementsBodyClone.appendChild(newTable);
+    });
+
+    const scroll = $replacementEntries.scrollTop;
+    replacementsBodyClone.scroll(0, scroll);
+}
+
+const replacementsTableMouseDownHandler = function (e) {
+    // Get the original row
+    const originalRow = e.target.parentNode.parentNode;
+    draggingRowIndex = [].slice.call($replacementEntries.querySelectorAll('tr')).indexOf(originalRow);
+
+    // Determine the mouse position
+    replacementsX = e.clientX;
+    replacementsY = e.clientY;
+
+    $('.replacement-dropdown.active').dropdown({
+        duration: 0
+    }).dropdown('hide');
+
+    // Attach the listeners to `document`
+    document.addEventListener('mousemove', replacementsTableMouseMoveHandler);
+    document.addEventListener('mouseup', replacementsTableMouseUpHandler);
+};
+
+const replacementsTableMouseMoveHandler = function (e) {
+    if (!isDraggingStarted) {
+        isDraggingStarted = true;
+
+        cloneTable();
+
+        draggingEle = [].slice.call(replacementsBodyClone.children)[draggingRowIndex];
+        draggingEle.classList.add('dragging');
+        draggingEle.style.pointerEvents = 'none';
+        draggingEle.style.zIndex = '1';
+
+        // Let the placeholder take the height of dragging element
+        // So the next element won't move up
+        replacementsPlaceholder = document.createElement('div');
+        replacementsPlaceholder.classList.add('replacementsPlaceholder');
+        draggingEle.parentNode.insertBefore(replacementsPlaceholder, draggingEle.nextSibling);
+        replacementsPlaceholder.style.height = `${parseFloat(window.getComputedStyle(draggingEle).height)}px`;
+        if (draggingRowIndex > 0) {
+            replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
+            replacementsPlaceholder.style.borderTopStyle = 'solid';
+            replacementsPlaceholder.style.borderTopWidth = draggingEle.style.borderTopWidth;
+        }
+        draggingEle.style.position = 'absolute';
+        draggingEle.style.top = `${draggingEle.offsetTop - replacementsPlaceholder.parentNode.scrollTop}px`;
+
+        const cells = draggingEle.querySelector('tr').children;
+        for (let i = 0; i < cells.length; i++) {
+            const cell = cells[i];
+            cells[i].style.borderBottomWidth = cellBorderWidth;
+            cells[i].style.borderTopWidth = cellBorderWidth;
+        }
+
+        cells[0].style.borderLeftStyle = 'solid';
+        cells[0].style.borderLeftWidth = cellBorderWidth;
+        cells[0].style.width = `${parseFloat(cells[0].width) + parseFloat(cellBorderWidth)}px`;
+
+        cells[cells.length - 1].style.borderRightStyle = 'solid';
+        cells[cells.length - 1].style.borderRightWidth = cellBorderWidth;
+        cells[cells.length - 1].style.width = `${parseFloat(cells[0].width) + parseFloat(cellBorderWidth)}px`;
+    }
+
+    // Set position for dragging element
+    draggingEle.style.top = `${draggingEle.offsetTop + e.clientY - replacementsY}px`;
+    draggingEle.style.left = `${draggingEle.offsetLeft + e.clientX - replacementsX}px`;
+
+    // Reassign the position of mouse
+    replacementsX = e.clientX;
+    replacementsY = e.clientY;
+
+    // The current order
+    // prevEle
+    // draggingEle
+    // replacementsPlaceholder
+    // nextEle
+    const prevEle = draggingEle.previousElementSibling;
+    const nextEle = replacementsPlaceholder.nextElementSibling;
+
+    // The dragging element is above the previous element
+    // User moves the dragging element to the top
+    // We don't allow to drop above the header
+    // (which doesn't have `previousElementSibling`)
+    if (prevEle && isNodeAbove(draggingEle, prevEle)) {
+        // The current order    -> The new order
+        // prevEle              -> replacementsPlaceholder
+        // draggingEle          -> draggingEle
+        // replacementsPlaceholder          -> prevEle
+        swapNodes(replacementsPlaceholder, draggingEle);
+        swapNodes(replacementsPlaceholder, prevEle);
+        if (Array.prototype.indexOf.call(replacementsPlaceholder.parentNode.children, replacementsPlaceholder) === 0) {
+            const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
+            replacementsPlaceholder.style.height = window.getComputedStyle(prevEle).height;
+
+            prevEle.style.height = replacementsPlaceholderHeight;
+            for (let cell of prevEle.querySelector('tr').children) {
+                cell.style.borderTopWidth = cellBorderWidth;
+                cell.style.height = replacementsPlaceholderHeight;
+            }
+
+            replacementsPlaceholder.style.borderTopWidth = '0px';
+        }
+        return;
+    }
+
+    // The dragging element is below the next element
+    // User moves the dragging element to the bottom
+    if (nextEle && isNodeAbove(nextEle, draggingEle)) {
+        // The current order       -> The new order
+        // draggingEle             -> nextEle
+        // replacementsPlaceholder -> replacementsPlaceholder
+        // nextEle                 -> draggingEle
+        swapNodes(nextEle, replacementsPlaceholder);
+        swapNodes(nextEle, draggingEle);
+        if (Array.prototype.indexOf.call(nextEle.parentNode.children, nextEle) === 0) {
+            const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
+
+            replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
+            replacementsPlaceholder.style.borderTopStyle = 'solid';
+            replacementsPlaceholder.style.borderTopWidth = cellBorderWidth;
+            replacementsPlaceholder.style.height = `${parseFloat(window.getComputedStyle(nextEle).height)}px`;
+
+            nextEle.style.height = `${parseFloat(replacementsPlaceholderHeight)}px`;
+            for (let cell of nextEle.querySelector('tr').children) {
+                cell.style.borderTopWidth = '0px';
+                cell.style.height = replacementsPlaceholderHeight;
+            }
+        }
+    }
+};
+
+const replacementsTableMouseUpHandler = function () {
+    if (replacementsBodyClone === undefined ||
+        replacementsPlaceholder.parentNode === null ||
+        replacementsTableClone.parentNode === null) {
+        return;
+    }
+
+    // Remove the replacementsPlaceholder
+    replacementsPlaceholder && replacementsPlaceholder.parentNode.removeChild(replacementsPlaceholder);
+
+    draggingEle.classList.remove('dragging');
+    draggingEle.style.removeProperty('top');
+    draggingEle.style.removeProperty('left');
+    draggingEle.style.removeProperty('position');
+
+    // Get the end index
+    const endRowIndex = [].slice.call(replacementsBodyClone.children).indexOf(draggingEle);
+
+    isDraggingStarted = false;
+
+    // Move the dragged row to `endRowIndex`
+    let rows = [].slice.call($replacementEntries.querySelectorAll('tr'));
+    draggingRowIndex > endRowIndex
+        ? rows[endRowIndex].parentNode.insertBefore(rows[draggingRowIndex], rows[endRowIndex])
+        : rows[endRowIndex].parentNode.insertBefore(
+              rows[draggingRowIndex],
+              rows[endRowIndex].nextSibling
+          );
+
+    const scroll = replacementsBodyClone.scrollTop;
+    $replacementEntries.scroll(0, scroll);
+
+    // Remove the `list` element
+    replacementsTableClone.parentNode.removeChild(replacementsTableClone);
+
+    // Bring back the table
+    updateReplacementsList();
+    $replacementsTable.style.removeProperty('visibility');
+
+    // Remove the handlers of `mousemove` and `mouseup`
+    document.removeEventListener('mousemove', replacementsTableMouseMoveHandler);
+    document.removeEventListener('mouseup', replacementsTableMouseUpHandler);
+};
+
+$replacementEntries.querySelectorAll('tr').forEach(function (row, index) {
+    const firstCell = row.firstElementChild;
+    firstCell.querySelector('i').addEventListener('mousedown', replacementsTableMouseDownHandler);
+});
+
+// Replacements Map
+
+const defaultReplacementsList = [
+    ["clear", "", {"fullMatch": true}],
+    ["period", ".", {"removeLeadingSpace": true}],
+    ["comma", ",", {"removeLeadingSpace": true}],
+    ["exclamation mark", "!", {"removeLeadingSpace": true}],
+    ["question mark", "?", {"removeLeadingSpace": true}],
+    ["colon", ":", {"removeLeadingSpace": true}],
+    ["semicolon", ";", {"removeLeadingSpace": true}],
+    ["quotation mark", "\"", {"removeLeadingSpace": true}],
+    ["left parenthesis", "(", {"removeTrailingSpace": true}],
+    ["right parenthesis", ")", {"removeLeadingSpace": true}],
+    ["heart emoji", "♥"],
+    ["thumbs up emoji", "👍"],
+    ["thumbs down emoji", "👎"],
+    ["clap emoji", "👏"],
+    ["eyes emoji", "👀"],
+    ["skull emoji", "💀"],
+    ["thinking face", "🤔"],
+    ["happy face", "😄"],
+    ["smiley face", "🙂"],
+    ["neutral face", "😐"],
+    ["sad face", "🙁"],
+    ["angry face", "😠"],
+    ["gasping face", "😮"],
+    ["melting face", "🫠"]
+]
+
+let replacementsList = [];
+
+resetReplacementsList();
+
+function resetReplacementsList() {
+    let replacementsListCookie = getStringCookie('vts-replacements', '');
+    if (replacementsListCookie === "") {
+        replacementsList = JSON.parse(JSON.stringify(defaultReplacementsList));   
+    } else {
+        replacementsList = JSON.parse(replacementsListCookie);
+    }
+    $replacementEntries.replaceChildren();
+    loadReplacementsList();
+}
+
+function loadReplacementsList() {
+    for (const entry of replacementsList) {
+        addReplacementEntry(...entry);
+    }
+}
+
+function importReplacements() {
+    // if (phrase !== null) {
+    //     if (typeof phrase === 'string') {
+    //         newTableEntry.querySelector('.phrase').value = phrase;
+
+    //         if (options !== null) {
+    //             if (typeof options === 'object') {
+    //                 newTableEntry.querySelector('.phrase').value = options.replacement;
+    //             } else if (typeof options === 'string') {
+    //                 newTableEntry.querySelector('.phrase').value = options;
+    //             } else {
+    //                 console.info(`Invalid options found while adding replacement entry for phrase: "${phrase}"`);
+    //             }
+    //             newTableEntry.querySelector('.phrase').value = phrase;
+    //         }
+    //     } else {
+    //         console.info(`Invalid phrase found while adding replacement entry: "${phrase}"`);
+    //     }
+    // }
+    updateReplacementsList();
+}
+
+function exportReplacements() {
+    // TODO: Export UI
+    navigator.clipboard.writeText(JSON.stringify(replacementsList));
+}
+
+function applyReplacements(text) {
+    for (const [phrase, replacement, options] of replacementsList) {
+        let fullMatch = false;
+        let removeLeadingSpace = false;
+        let removeTrailingSpace = false;
+        if (options !== undefined) {
+            if (options.hasOwnProperty('fullMatch')) {
+                fullMatch = options.fullMatch;
+            }
+
+            if (options.hasOwnProperty('removeLeadingSpace')) {
+                removeLeadingSpace = options.removeLeadingSpace;
+            }
+
+            if (options.hasOwnProperty('removeTrailingSpace')) {
+                removeTrailingSpace = options.removeTrailingSpace;
+            }
+        }
+        if (fullMatch) {
+            if (text.toLowerCase() === phrase) {
+                text = replacement;
+                break;
+            }
+        } else {
+            const leadingSpace = removeLeadingSpace ? ' ?' : '';
+            const trailingSpace = removeTrailingSpace ? ' ?' : '';
+            const re = new RegExp(`${leadingSpace}${phrase}${trailingSpace}`, 'img');
+            text = text.replaceAll(re, replacement);
+        }
+    }
+    return text;
+}
+
+function updateFullMatch(element) {
+    const replacementDropdown = element.parentNode.parentNode.parentNode;
+    const removeLeadingSpaceCheckbox = $(replacementDropdown.querySelector('.remove-leading-space-checkbox'));
+    const removeTrailingSpaceCheckbox = $(replacementDropdown.querySelector('.remove-trailing-space-checkbox'));
+    if ($(element).checkbox('is checked')) {
+        removeLeadingSpaceCheckbox.checkbox('set disabled').checkbox('set unchecked');
+        removeTrailingSpaceCheckbox.checkbox('set disabled').checkbox('set unchecked');
+    } else {
+        removeLeadingSpaceCheckbox.checkbox('set enabled');
+        removeTrailingSpaceCheckbox.checkbox('set enabled');
+    }
+}
+
+function onFullMatchUpdate(element) {
+    updateFullMatch(element);
+    updateReplacementsList();
+}
+
+function onPhraseUpdate(element) {
+    element.value = element.value.toLowerCase();
+    updateReplacementsList();
+}
+
+function updateReplacementsList() {
+    replacementsList = [];
+    for (let child of $replacementEntries.children) {
+        phrase = child.querySelector('.phrase').value;
+        replacement = child.querySelector('.replacement').value;
+
+        let options = {};
+        if ($(child.querySelector('.full-match-checkbox')).checkbox('is checked')) {
+            options.fullMatch = true;
+        }
+
+        if ($(child.querySelector('.remove-leading-space-checkbox')).checkbox('is checked')) {
+            options.removeLeadingSpace = true;
+        }
+
+        if ($(child.querySelector('.remove-trailing-space-checkbox')).checkbox('is checked')) {
+            options.removeTrailingSpace = true;
+        }
+
+        let entry = [phrase, replacement];
+        if (Object.keys(options).length > 0) {
+            entry.push(options);
+        }
+
+        replacementsList.push(entry);
+    }
+    setCookie('vts-replacements', JSON.stringify(replacementsList));
+}
+
+function showReplacementDropdownMenu(dropdown) {
+    if (!$(dropdown).dropdown('is visible')) {
+        const entriesRect = $replacementEntries.getBoundingClientRect();
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const menu = dropdown.querySelector('.menu');
+
+        if (menu === null) {
+            return;
+        }
+
+        if (entriesRect.bottom - dropdownRect.top < dropdownRect.top - entriesRect.top) {
+            menu.classList.remove('pointing-top-right');
+            menu.classList.add('pointing-bottom-right');
+            $(dropdown).dropdown({
+                action: 'nothing',
+                direction: 'upward'
+            }).dropdown('show');
+        } else {
+            menu.classList.remove('pointing-bottom-right');
+            menu.classList.add('pointing-top-right');
+            $(dropdown).dropdown({
+                action: 'nothing',
+                direction: 'auto'
+            }).dropdown('show');
+        }
+    }
+}
+
+function addEmptyReplacementEntry() {
+    addReplacementEntry(undefined, undefined, undefined);
+    updateReplacementsList();
+}
+
+function addReplacementEntry(phrase, replacement, options) {
+    const newTableEntry = $replacementEntryTemplate.cloneNode(true);
+
+    if (phrase !== undefined && replacement !== undefined) {
+        newTableEntry.querySelector('.phrase').value = phrase;
+        newTableEntry.querySelector('.replacement').value = replacement;
+
+        if (options !== undefined) {
+            if (options.hasOwnProperty('fullMatch')) {
+                newTableEntry.querySelector('.full-match-checkbox').querySelector('input').checked = options.fullMatch;
+            }
+
+            if (options.hasOwnProperty('removeLeadingSpace')) {
+                newTableEntry.querySelector('.remove-leading-space-checkbox').querySelector('input').checked = options.removeLeadingSpace;
+            }
+
+            if (options.hasOwnProperty('removeTrailingSpace')) {
+                newTableEntry.querySelector('.remove-trailing-space-checkbox').querySelector('input').checked = options.removeTrailingSpace;
+            }
+        }
+    }
+
+    $replacementEntries.appendChild(newTableEntry);
+    newTableEntry.firstElementChild.querySelector('i').addEventListener('mousedown', replacementsTableMouseDownHandler);
+
+    $('.new-replacement-dropdown').dropdown({
+        action: 'nothing'
+    }).removeClass('new-replacement-dropdown');
+    $replacementEntries.scrollTop = $replacementEntries.scrollHeight - $replacementEntries.clientHeight;
+
+    $('.new-replacement-checkbox').checkbox({
+        onChange: function() {
+            updateReplacementsList();
+        }
+    }).removeClass('new-replacement-checkbox');
+
+    const fullMatchCheckbox = document.querySelector('.new-full-match-replacement-checkbox');
+    updateFullMatch(fullMatchCheckbox);
+    $(fullMatchCheckbox).checkbox({
+        onChange: function() {
+            onFullMatchUpdate(this.parentNode);
+        }
+    }).removeClass('new-full-match-replacement-checkbox');
+}
+
+function deleteNodeRecursive(node) {
+  while (node.hasChildNodes()) {
+    deleteNodeRecursive(node.firstChild);
+  }
+  node.parentNode.removeChild(node);
+}
+
+function deleteReplacementEntry(element) {
+    deleteNodeRecursive(element.parentNode.parentNode.parentNode.parentNode);
+    updateReplacementsList();
+}
+
+// End Replacements
+
 function scrollTranscript() {
     transcript.scrollTop = transcript.scrollHeight - transcript.clientHeight;
 }
@@ -1535,41 +2127,75 @@ function getTranscriptTime() {
     return timestamp;
 }
 
-function appendTranscript(text, link) {
+function appendTranscript(text, untranslatedText, inputLang, translationLang, link) {
     // allow 1px inaccuracy by adding 1
     const isScrolledToBottom = transcript.scrollHeight - transcript.clientHeight
         <= transcript.scrollTop + 1;
 
+    // Transcript
     const transcriptTime = document.createElement('div');
     transcriptTime.setAttribute('id', 'transcriptTime');
-    transcriptTime.setAttribute('class', 'transcript-time unselectable');
-    transcriptTime.setAttribute('unselectable', 'on');
-    transcriptTime.textContent = getTranscriptTime();
+    transcriptTime.setAttribute('class', 'transcript-time');
+    transcriptTime.textContent = `${getTranscriptTime()} `;
     if (!timestampsEnabled) {
         transcriptTime.style.display = 'none';
     }
 
     const transcriptText = document.createElement('div');
-    transcriptText.setAttribute('class', 'transcript-text');
-    transcriptText.textContent = text;
+    if (text === "") {
+        transcriptText.setAttribute('class', 'transcript-text transcript-empty-text unselectable');
+        transcriptText.setAttribute('unselectable', 'on');
+        transcriptText.textContent = "Empty text"
+    } else {
+        transcriptText.setAttribute('class', 'transcript-text');
+        transcriptText.textContent = text
+    }
 
     const transcriptPlay = document.createElement('div');
     transcriptPlay.setAttribute('class', 'transcript-play unselectable');
     transcriptPlay.setAttribute('unselectable', 'on');
     transcriptPlay.setAttribute(
         'onClick',
-        `playTranscriptAudio(this, "${link}", stop=true)`,
+        `playTranscriptAudio(this, "${link}", true)`,
     );
 
     const playIcon = document.createElement('i');
     playIcon.setAttribute('class', 'play circle outline icon');
     transcriptPlay.appendChild(playIcon);
 
+    const transcriptContainer = document.createElement('div');
+    transcriptContainer.setAttribute('class', 'transcript-container');
+    transcriptContainer.appendChild(transcriptTime);
+    transcriptContainer.appendChild(transcriptText);
+    transcriptContainer.appendChild(transcriptPlay);
+
+    // Translation
+    const translated = inputLang !== translationLang;
+    const transcriptTranslation = document.createElement('div');
+    if (translated) {
+        const transcriptTranslationInfo = document.createElement('div');
+        transcriptTranslationInfo.setAttribute('class', 'transcript-translation-info');
+        transcriptTranslationInfo.textContent = `${inputLang}|${translationLang} `;
+
+        const transcriptUntranslatedText = document.createElement('div');
+        transcriptUntranslatedText.setAttribute('class', 'transcript-untranslated-text');
+        transcriptUntranslatedText.textContent = `${untranslatedText}`;
+
+        transcriptTranslation.setAttribute('id', 'transcriptTranslation');
+        transcriptTranslation.appendChild(transcriptTranslationInfo);
+        transcriptTranslation.appendChild(transcriptUntranslatedText);
+        if (!translationsEnabled) {
+            transcriptTranslation.style.display = 'none';
+        }
+    }
+
+    // Body
     const transcriptBody = document.createElement('div');
     transcriptBody.setAttribute('class', 'transcript-body');
-    transcriptBody.appendChild(transcriptTime);
-    transcriptBody.appendChild(transcriptText);
-    transcriptBody.appendChild(transcriptPlay);
+    if (translated) {
+        transcriptBody.appendChild(transcriptTranslation);
+    }
+    transcriptBody.appendChild(transcriptContainer);
 
     transcript.appendChild(transcriptBody);
 
@@ -1597,17 +2223,43 @@ function appendTranscript(text, link) {
 
 function hideTranscriptHover(element) {
     if (
-        !element.children('.transcript-play').hasClass('active-audio')
+        !element.children('.transcript-container').children('.transcript-play').hasClass('active-audio')
         || !element.hasClass('active-hover')
     ) {
         element.css('background-color', 'white');
-        element.children('.transcript-play').css('display', 'none');
+        element.children('.transcript-container').children('.transcript-play').css('display', 'none');
     }
 }
 
 function showTranscriptHover(element) {
     element.css('background-color', 'whitesmoke');
-    element.children('.transcript-play').css('display', 'block');
+    element.children('.transcript-container').children('.transcript-play').css('display', 'block');
+}
+
+function copyTranscript() {
+    node = document.getElementById("transcript");
+
+    if (document.body.createTextRange) {
+        const range = document.body.createTextRange();
+        range.moveToElementText(node);
+        range.select();
+    } else if (window.getSelection) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    } else {
+        console.warn("Could not select text in node: Unsupported browser.");
+    }
+    
+    document.execCommand("copy");
+
+    if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+    } else if (document.selection) {
+        document.selection.empty();
+    }
 }
 
 function speechButton() {
@@ -1619,8 +2271,8 @@ function speechButton() {
         speechBuffer = [];
 
         buttonState = 1;
-        testButtonInfo.textContent = 'Press stop to end speech recognition';
-        testButton.textContent = 'Stop';
+        startButtonInfo.textContent = 'Press stop to end speech recognition';
+        startButton.textContent = 'Stop';
         testSpeech();
     } else {
         // Stop speech
@@ -1640,8 +2292,8 @@ function speechButton() {
         hideTranscriptHover($('.transcript-body'));
 
         buttonState = -1;
-        testButton.disabled = true;
-        testButton.textContent = 'Stopping...';
+        startButton.disabled = true;
+        startButton.textContent = 'Stopping...';
         recognition.onend();
     }
 }
@@ -1706,7 +2358,7 @@ function gotDevices(deviceInfos) {
             option.text = deviceInfo.label || `speaker ${audioOutputSelect.length + 1}`;
             audioOutputSelect.appendChild(option);
         } else {
-            console.log('Some other kind of source/device: ', deviceInfo);
+            // console.info('Some other kind of source/device: ', deviceInfo);
         }
     }
     selectors.forEach((select, selectorIndex) => {
@@ -1814,6 +2466,10 @@ let timeoutTimes = 0;
 
 // Used by transcript play button
 async function playTranscriptAudio(elem, audioURL, stop = false) {
+    if (audioURL === "") {
+        return;
+    }
+
     if (!mute) {
         const element = $(elem);
         if (element.children('i').hasClass('play')) {
@@ -1827,7 +2483,7 @@ async function playTranscriptAudio(elem, audioURL, stop = false) {
             } catch (err) {
                 // Do nothing
             }
-            hideTranscriptHover(activeAudioElement.parent());
+            hideTranscriptHover(activeAudioElement.parent().parent());
             element.addClass('active-audio');
             element.children('i')[0].setAttribute('class', 'stop circle outline icon');
             playAudio(audioURL, stop, true);
@@ -1866,14 +2522,14 @@ function sendJsonRequest(method, url, jsonPayload) {
 }
 
 async function playAudio(audioURL, stop, fromTranscript) {
-    if (mute) {
+    if (audioURL === "" || mute) {
         return;
     }
 
     if (audioURL.startsWith('ss:')) {
         // Let SpeechSynthesis handle audio queue and ignore usual transcript play stop logic
         const activeAudioElement = $('.active-audio');
-        hideTranscriptHover(activeAudioElement.parent());
+        hideTranscriptHover(activeAudioElement.parent().parent());
         try {
             activeAudioElement
                 .children('i')[0]
@@ -1920,7 +2576,7 @@ async function playAudio(audioURL, stop, fromTranscript) {
     audio.onended = function onended() {
         speechPlaying = false;
         const activeAudioElement = $('.active-audio');
-        hideTranscriptHover(activeAudioElement.parent());
+        hideTranscriptHover(activeAudioElement.parent().parent());
         try {
             activeAudioElement
                 .children('i')[0]
@@ -1954,11 +2610,11 @@ async function playTTSInput() {
     const speech = $ttsInput.val();
     if (speech !== "") {
         $ttsInput.val("");
-        playTTS([speech], true, false);
+        playTTS([speech], true, false, true);
     }
 }
 
-async function playTTS(speech, direct, interimAddition = false, padSpacing = true) {
+async function playTTS(speech, ttsEnabled, interimAddition = false, padSpacing = true) {
     // Update device names
     await navigator.mediaDevices
         .enumerateDevices()
@@ -1966,7 +2622,7 @@ async function playTTS(speech, direct, interimAddition = false, padSpacing = tru
         .catch(handleError);
 
     // ~console.info("playTTS");
-    if (speech.length === 0 || (buttonState !== 1 && direct == false)) {
+    if (speech.length === 0 || (buttonState !== 1 && ttsEnabled == false)) {
         return;
     }
     try {
@@ -2031,57 +2687,62 @@ async function playTTS(speech, direct, interimAddition = false, padSpacing = tru
         // Remove empty strings
         speech = speech.filter(el => el);
 
-        const speechText = speech.join(' ');
-        console.info(`Speech: ${speechText}`);
-        if (socketEnabled) {
-            if (translationLang !== null) {
-                socket.emit('speech', speechText, untranslatedSpeechText, inputLang, translationLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
-            } else {
-                socket.emit('speech', speechText, untranslatedSpeechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, direct, interimAddition, padSpacing);
-            }
-        }
+        // Do not apply replacements if tts is enabled
+        const speechTextUnedited = speech.join(' ');
+        const speechText = ttsEnabled ? speechTextUnedited : applyReplacements(speechTextUnedited);
+        const speechEncoded = encodeURI(speechText);
 
-        // speech = speech.join("-");
-        speech = encodeURI(speechText);
-        if (speech === "") {
-            return;
-        }
+        const noSpeech = speechText.trim() === "";
+        const noSpeechEncoded = speechEncoded.trim() === "";
+        const noSpeechIntentional = noSpeech && speechTextUnedited.trim() !== "";
 
-        let audioURL = "";
-        if (voiceSet === "s") {
-            // Using native speech synthesis
-            if (speechText === '') {
-                return;
-            }
-            if (outputLang.toLowerCase().includes('google')) {
-                let rateAdjusted = rate;
-                if (rateAdjusted > 1) {
-                    // Adjust to strech 1 to 1.3 into 1 to 2
-                    rateAdjusted = 1 + Math.log10(rate);
+        if (ttsEnabled || !noSpeech || noSpeechIntentional) {
+            console.info(`Speech: ${speechText}`);
+            if (socketEnabled) {
+                if (translationLang !== null) {
+                    socket.emit('speech', speechText, untranslatedSpeechText, inputLang, translationLang, translateEnabled, lowlatencyEnabled, ttsEnabled, interimAddition, padSpacing);
+                } else {
+                    socket.emit('speech', speechText, untranslatedSpeechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, ttsEnabled, interimAddition, padSpacing);
                 }
-                audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(pitch, 0.1)}|${outputLang}`;
-            } else {
-                audioURL = `ss:${speechText}|${rate}|${pitch}|${outputLang}`;
             }
-        } else if (voiceSet === "a") {
-            // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
-            audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speech}`;
-        } else if (voiceSet === "b") {
-            // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&gender=male&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=kvfbSITh
-            audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speech}&lang=${outputLang}&engine=g3&name=&pitch=${pitch / 2.0}&rate=${rate / 2.0}&volume=1&key=kvfbSITh`
-        } else if (voiceSet === "c") {
-            // Example: https://api.streamelements.com/kappa/v2/speech?voice=Justin&text=hello
-            audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speech}`;
-        } else if (voiceSet === "d") {
-            // Example: https://api.streamelements.com/kappa/v2/speech?voice=en-US-Wavenet-A&text=hello
-            audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speech}`;
-        } else if (voiceSet === "e") {
-            // Using TikTok voice set
-            audioURL = `tt:${speechText}|${outputLang}`;
         }
 
-        appendTranscript(speechText, audioURL);
-        playAudio(audioURL, false, false);   
+        if ((ttsEnabled && noSpeech) || (!ttsEnabled && noSpeechIntentional) || (!ttsEnabled && noSpeechEncoded)) {
+            appendTranscript(speechText, untranslatedSpeechText, inputLang, translationLang, "");
+        } else if (!noSpeech && !noSpeechEncoded) {
+            let audioURL = "";
+            if (voiceSet === "s") {
+                // Using native speech synthesis
+                if (outputLang.toLowerCase().includes('google')) {
+                    let rateAdjusted = rate;
+                    if (rateAdjusted > 1) {
+                        // Adjust to strech 1 to 1.3 into 1 to 2
+                        rateAdjusted = 1 + Math.log10(rate);
+                    }
+                    audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(pitch, 0.1)}|${outputLang}`;
+                } else {
+                    audioURL = `ss:${speechText}|${rate}|${pitch}|${outputLang}`;
+                }
+            } else if (voiceSet === "a") {
+                // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
+                audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speechEncoded}`;
+            } else if (voiceSet === "b") {
+                // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&gender=male&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=kvfbSITh
+                audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speechEncoded}&lang=${outputLang}&engine=g3&name=&pitch=${pitch / 2.0}&rate=${rate / 2.0}&volume=1&key=kvfbSITh`
+            } else if (voiceSet === "c") {
+                // Example: https://api.streamelements.com/kappa/v2/speech?voice=Justin&text=hello
+                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speechEncoded}`;
+            } else if (voiceSet === "d") {
+                // Example: https://api.streamelements.com/kappa/v2/speech?voice=en-US-Wavenet-A&text=hello
+                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speechEncoded}`;
+            } else if (voiceSet === "e") {
+                // Using TikTok voice set
+                audioURL = `tt:${speechText}|${outputLang}`;
+            }
+
+            appendTranscript(speechText, untranslatedSpeechText, inputLang, translationLang, audioURL);
+            playAudio(audioURL, false, false);
+        }
     } catch (err) {
         // ~console.info("error playTTS");
         console.error(err);
@@ -2186,8 +2847,8 @@ function capitalize(s) {
 */
 
 function testSpeech() {
-    // testButton.disabled = true;
-    // testButton.textContent = 'In progress';
+    // startButton.disabled = true;
+    // startButton.textContent = 'In progress';
 
     // To ensure case consistency while checking with the returned output text
     // diagnosticPara.textContent = '...diagnostic messages';
@@ -2284,22 +2945,22 @@ function testSpeech() {
 
     recognition.onspeechend = function onspeechend() {
         recognition.stop();
-        // testButton.disabled = false;
-        // testButton.textContent = 'Start';
+        // startButton.disabled = false;
+        // startButton.textContent = 'Start';
         if (buttonState === 1) {
             restartSpeech();
         }
     };
 
     recognition.onerror = function onerror(event) {
-        // testButton.disabled = false;
-        // testButton.textContent = 'Start';
+        // startButton.disabled = false;
+        // startButton.textContent = 'Start';
         console.info('SpeechRecognition.onerror');
         console.info(event);
         if (buttonState === 1) {
             diagnosticPara.textContent = `Error occurred in recognition: ${event.error}`;
             if (event.error === 'audio-capture') {
-                testButton.click();
+                startButton.click();
             } else {
                 restartSpeech();
             }
@@ -2329,9 +2990,9 @@ function testSpeech() {
                 socket.emit('status', 'stopped');
             }
             buttonState = 0;
-            testButtonInfo.textContent = 'Press start to begin speech recognition';
-            testButton.textContent = 'Start';
-            testButton.disabled = false;
+            startButtonInfo.textContent = 'Press start to begin speech recognition';
+            startButton.textContent = 'Start';
+            startButton.disabled = false;
             recognition.stop();
         }
     };
@@ -2379,13 +3040,26 @@ function testSpeech() {
     };
 }
 
-testButton.addEventListener('click', speechButton);
-// optionsButton.addEventListener('click', toggleOptions);
-// transcriptButton.addEventListener('click', toggleTranscript);
+startButton.addEventListener('click', speechButton);
 
 function resetOptions() {
+    if (document.querySelector('div#tab-settings').classList.contains('active')) {
+        $resetSettingsModal.modal('show');
+    } else {
+        $resetReplacementsModal.modal('show');
+    }
+
+    getCookiesAndUpdate();
+}
+
+function resetSettings() {
+    $resetSettingsModal.modal('hide');
+    $resetSettingsNag.nag({
+        displayTime: 2000
+    }).nag('show');
+
     for (const key of Object.keys(Cookies.get())) {
-        if (key.startsWith('vts-')) {
+        if (key.startsWith('vts-') && key !== 'vts-replacements') {
             Cookies.remove(key);
         }
     }
@@ -2393,8 +3067,20 @@ function resetOptions() {
     getCookiesAndUpdate();
 }
 
+function resetReplacements() {
+    $resetReplacementsModal.modal('hide');
+    $resetReplacementsNag.nag({
+        displayTime: 2000
+    }).nag('show');
+
+    Cookies.remove('vts-replacements');
+
+    getCookiesAndUpdate();
+    resetReplacementsList();
+}
+
 async function getCookiesAndUpdate() {
-    if (getBooleanCookie('vts-mute', true) && !mute) {
+    if (getBooleanCookie('vts-mute', false) && !mute) {
         toggleMute();
     }
 
@@ -2423,7 +3109,11 @@ async function getCookiesAndUpdate() {
     }
 
     if (!getBooleanCookie('vts-timestampsEnabled', true) && timestampsEnabled) {
-        $toggleTimestampsButton.click();
+        $timestampsButton.click();
+    }
+
+    if (!getBooleanCookie('vts-translationsEnabled', true) && translationsEnabled) {
+        $translationsButton.click();
     }
 }
 

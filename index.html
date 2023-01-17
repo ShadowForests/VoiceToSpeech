@@ -11,21 +11,36 @@
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico?">
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.0/dist/semantic.min.css">
     <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
   </head>
 
   <body>
+    <div id="reset-settings-nag" class="ui red overlay nag" style="display: none;">
+      <span class="title">
+        Reset all settings.
+      </span>
+      <i class="close icon"></i>
+    </div>
+    <div id="reset-replacements-nag" class="ui red overlay nag" style="display: none;">
+      <span class="title">
+        Reset all replacements.
+      </span>
+      <i class="close icon"></i>
+    </div>
     <div class="absolute-top">
       <h1 class="main-h1 unselectable" unselectable="on">Voice To Speech</h1>
-      <p id="testButtonInfo" class="bottom-margin-small unselectable" unselectable="on">Press start to begin speech recognition.</p>
+      <p id="startButtonInfo" class="bottom-margin-small unselectable" unselectable="on">Press start to begin speech recognition.</p>
 
       <div class="center bottom-margin unselectable" unselectable="on">
-        <button id="testButton" class="btn center">Start</button>
+        <button id="startButton" class="btn center">Start</button>
         <button id="optionsButton" class="btn btn-square"><i class="cog icon img-centered"></i></button>
       </div>
 
@@ -36,7 +51,7 @@
         </div>
       </div>
       <div id="ttsArea" class="tts-area unselectable" unselectable="on">
-        <div id="ttsInputArea" class="tts-input-area ui icon input unselectable" unselectable="on">
+        <div id="ttsInputArea" class="tts-input-area ui fluid icon input unselectable" unselectable="on">
           <input id="ttsInput" class="ui bottom attached raised segment tts options" type="text" placeholder="Type here..."></input>
           <i class="play circle outline link icon img-centered tts-button" onclick="playTTSInput()"></i>
         </div>
@@ -55,11 +70,28 @@
         <div class="right floated hover-button">
           <i class="close icon img-centered button-medium" onclick="$transcriptButton.click()"></i>
         </div>
-        <div class="ui right floated dropdown hover-button item">
+        <div id="transcriptDropdown" class="ui right floated dropdown hover-button">
           <i class="ellipsis horizontal icon"></i>
-          <div class="menu">
-            <div class="item" id="toggleTimestampsButton">Toggle Timestamps</div>
-            <div class="item" id="clearTranscriptButton">Clear Transcript</div>
+          <div class="left menu pointing-top-right">
+            <div class="item dropdown-checkbox">
+              <div id="timestampsCheckbox" class="ui left floated checkbox">
+                <input type="checkbox" checked>
+                <label class="dropdown-checkbox-label">Timestamps</label>
+              </div>
+            </div>
+            <div class="item dropdown-checkbox">
+              <div id="translationsCheckbox" class="ui left floated checkbox">
+                <input type="checkbox" checked>
+                <label class="dropdown-checkbox-label">Translations</label>
+              </div>
+            </div>
+            <div class="item dropdown-button"><div id="clearTranscriptButton" class="ui fluid compact red button">Clear Transcript</div></div>
+          </div>
+        </div>
+        <div class="right floated copy-icon">
+          <i id="transcriptCopy" class="copy icon hover-button" onclick="copyTranscript()"></i>
+          <div class="ui popup custom-popup">
+            Copied!
           </div>
         </div>
       </div>
@@ -68,147 +100,216 @@
 
     <div class="absolute-bottom unselectable" unselectable="on">
       <div class="ui small modal options-modal">
-        <i class="close icon"></i>
-        <div class="header">
-          Options
+        <!-- <div class="header">Settings</div> -->
+        <div class="ui secondary pointing tabular menu options-menu">
+          <!-- <a class="active item" data-tab="tab-settings" onclick="$('.content.settings-content').attr('style', 'display: block')"> -->
+          <a class="active item options-tab" data-tab="tab-settings">
+            Settings
+          </a>
+          <a class="item options-tab" data-tab="tab-replacements">
+            Replacements
+          </a>
         </div>
+        <i class="close icon close-icon"></i>
 
         <div class="content">
-          <div class="ui container grid">
-            <div class="row no-bottom-padding">
-              <div class="eight wide column">
-                <p class="option-text">Input Device</p>
-                <select id="audioSource" class="ui selection dropdown wide-select disabled">
-                </select>
-              </div>
-
-              <div class="eight wide column">
-                <p id="audioOutputText" class="option-text">Output Device</p>
-                <select id="audioOutput" class="ui selection dropdown wide-select">
-                </select>
-              </div>
-            </div>
-
-            <div class="row no-bottom-padding">
-              <div class="eight wide column">
-                <p class="option-text">Input Language</p>
-                <select id="searchSelectInput" class="ui search selection dropdown wide-select">
-                </select>
-              </div>
-
-              <div class="eight wide column">
-                <p id="outputVoiceText" class="option-text">Output Voice</p>
-                <select id="searchSelectOutput" class="ui search selection dropdown wide-select">
-                </select>
-              </div>
-            </div>
-
-            <div class="row top-padding no-bottom-padding">
-              <div class="wide column">
-                <p class="option-text no-bottom-padding">Output Volume</p>
-                <div class="left floated">
-                  <i id="volumeMute" class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute()"></i>
-                </div>
-                <div id="volumeSlider" class="ui slider slider-full right floated">
-                  <div class="inner">
-                    <div class="track"></div>
-                    <div id="volumeFill" class="track-fill"></div>
-                    <div id="volumeThumb" class="thumb" onmousedown="volumeSliderMousedown()"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="extraVoiceOptions" class="row no-top-padding no-bottom-padding" style="display: none !important">
-              <div class="eight wide column">
-                <p class="left floated option-text">Pitch</p>
-                <p></p>
-                <div id="pitchSlider" class="ui slider">
-                  <div class="inner">
-                    <div class="track"></div>
-                    <div class="track-fill"></div>
-                    <div id="pitchThumb" class="thumb" onmousedown="pitchSliderMousedown()"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="eight wide column">
-                <p class="left floated option-text">Rate</p>
-                <p></p>
-                <div id="rateSlider" class="ui slider">
-                  <div class="inner">
-                    <div class="track"></div>
-                    <div class="track-fill"></div>
-                    <div id="rateThumb" class="thumb" onmousedown="rateSliderMousedown()"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row no-bottom-padding">
-              <div class="eight wide column">
-                <p class="left floated option-text">Transcript</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="transcriptCheckbox" type="checkbox" name="public" checked="true">
-                  <label></label>
-                </div>
+          <div id="tab-replacements" class="ui bottom tab tab-replacements unselectable" unselectable="on" data-tab="tab-replacements">
+            <table id="replacementsTable" class="ui compact celled unstackable scrolling table">
+              <thead>
+                <tr>
+                  <th class="table-button"></th>
+                  <th class="table-cell">Phrase</th>
+                  <th class="table-cell">Replacement</th>
+                  <th class="table-button"></th>
+                </tr>
+              </thead>
+              <tbody id="replacementEntries" class="replacement-entries">
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th class="table-footer" colspan="4">
+                    <span class="ui grey text left table-footer-text">Priority: Top🡒Bottom</span>
+                    <div class="right floated">
+                      <div id="exportReplacementsButton" class="ui button footer-button export-button" onclick="exportReplacements()"><i class="file export icon export-icon"></i></div>
+                      <div class="ui popup custom-popup">
+                        Export Replacements
+                      </div>
+                    </div>
+                    <div class="right floated">
+                      <div id="importReplacementsButton" class="ui disabled button footer-button" onclick="importReplacements()"><i class="file import icon import-icon"></i></div>
+                      <div class="ui popup custom-popup">
+                        Import Replacements
+                      </div>
+                    </div>
+                    <div class="right floated">
+                      <div id="addEntryButton" class="ui button footer-button" onclick="addEmptyReplacementEntry()"><i class="plus icon plus-icon"></i></div>
+                      <div class="ui popup custom-popup">
+                        Add Entry
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div id="tab-settings" class="ui bottom tab tab-settings unselectable" unselectable="on" data-tab="tab-settings">
+            <div class="ui container grid options-grid">
+              <div class="row no-bottom-padding">
+                <div class="eight wide column">
+                  <p class="option-text">Input Device</p>
+                  <select id="audioSource" class="ui selection dropdown dropdown-select wide-select disabled">
+                  </select>
                 </div>
 
                 <div class="eight wide column">
-                  <p class="left floated option-text">Socket</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="socketCheckbox" type="checkbox" name="public" checked="true">
-                  <label></label>
+                  <p id="audioOutputText" class="option-text">Output Device</p>
+                  <select id="audioOutput" class="ui selection dropdown dropdown-select wide-select">
+                  </select>
                 </div>
               </div>
-            </div>
 
-            <div class="row no-bottom-padding small-top-padding">
-              <div class="eight wide column">
-                <p class="left floated option-text">Text to Speech</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="ttsCheckbox" type="checkbox" name="public" checked="true">
-                  <label></label>
-                </div>
+              <div class="row no-bottom-padding">
+                <div class="eight wide column">
+                  <p class="option-text">Input Language</p>
+                  <select id="searchSelectInput" class="ui search selection dropdown dropdown-search wide-select">
+                  </select>
                 </div>
 
                 <div class="eight wide column">
-                  <p class="left floated option-text">Diagnostics</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="diagnosticsCheckbox" type="checkbox" name="public" checked="true">
-                  <label></label>
-                </div>
-              </div>
-            </div>
-
-            <div class="row small-top-padding">
-              <div class="eight wide column">
-                <p class="left floated option-text">Low-Latency</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="lowlatencyCheckbox" type="checkbox" name="public" checked="true">
-                  <label></label>
+                  <p id="outputVoiceText" class="option-text">Output Voice</p>
+                  <select id="searchSelectOutput" class="ui search selection dropdown dropdown-search wide-select">
+                  </select>
                 </div>
               </div>
 
-              <div class="eight wide column">
-                <p class="left floated option-text">Translation</p>
-                <div class="ui right floated toggle checkbox">
-                  <input id="translateCheckbox" type="checkbox" name="public">
-                  <label></label>
+              <div class="row top-padding no-bottom-padding">
+                <div class="wide column">
+                  <p class="option-text no-bottom-padding">Output Volume</p>
+                  <div class="left floated">
+                    <i id="volumeMute" class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute()"></i>
+                  </div>
+                  <div id="volumeSlider" class="ui slider slider-full right floated">
+                    <div class="inner">
+                      <div class="track"></div>
+                      <div id="volumeFill" class="track-fill"></div>
+                      <div id="volumeThumb" class="thumb" onmousedown="volumeSliderMousedown()"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="extraVoiceOptions" class="row no-top-padding no-bottom-padding" style="display: none !important">
+                <div class="eight wide column">
+                  <p class="left floated option-text">Pitch</p>
+                  <p></p>
+                  <div id="pitchSlider" class="ui slider">
+                    <div class="inner">
+                      <div class="track"></div>
+                      <div class="track-fill"></div>
+                      <div id="pitchThumb" class="thumb" onmousedown="pitchSliderMousedown()"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="eight wide column">
+                  <p class="left floated option-text">Rate</p>
+                  <p></p>
+                  <div id="rateSlider" class="ui slider">
+                    <div class="inner">
+                      <div class="track"></div>
+                      <div class="track-fill"></div>
+                      <div id="rateThumb" class="thumb" onmousedown="rateSliderMousedown()"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row no-bottom-padding">
+                <div class="eight wide column">
+                  <p class="left floated option-text">Transcript</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="transcriptCheckbox" type="checkbox" checked>
+                    <label></label>
+                  </div>
+                  </div>
+
+                  <div class="eight wide column">
+                    <p class="left floated option-text">Socket</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="socketCheckbox" type="checkbox" checked>
+                    <label></label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row no-bottom-padding small-top-padding">
+                <div class="eight wide column">
+                  <p class="left floated option-text">TTS Input</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="ttsCheckbox" type="checkbox" checked>
+                    <label></label>
+                  </div>
+                  </div>
+
+                  <div class="eight wide column">
+                    <p class="left floated option-text">Diagnostics</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="diagnosticsCheckbox" type="checkbox" checked>
+                    <label></label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row small-top-padding">
+                <div class="eight wide column">
+                  <p class="left floated option-text">Low-Latency</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="lowlatencyCheckbox" type="checkbox" checked>
+                    <label></label>
+                  </div>
+                </div>
+
+                <div class="eight wide column">
+                  <p class="left floated option-text">Translation</p>
+                  <div class="ui right floated toggle checkbox">
+                    <input id="translateCheckbox" type="checkbox" name="public">
+                    <label></label>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="actions bottom-margin-media">
+        <div class="actions bottom-margin-media unselectable" unselectable="on">
           <div class="bottom-margin-media left floated">
-            <i id="resetOptions" class="refresh icon img-centered hover-button" onclick="resetCookies()"></i>
-            <span>Reset Options</span>
+            <i id="resetOptionsButton" class="refresh icon img-centered hover-button reset-button"></i>
           </div>
           <div class="bottom-margin-media">
             <span>Created by ShadowForest </span><span class="extra-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
           </div>
+        </div>
+      </div>
+
+      <div class="ui mini modal reset-settings-modal">
+        <div class="header">Reset Settings</div>
+        <div class="content">
+          <p>Are you sure you want to reset all settings?</p>
+        </div>
+        <div class="actions">
+          <div class="ui button" onclick="$('.ui.modal.reset-settings-modal').modal('hide')">Cancel</div>
+          <div class="ui red button" onclick="resetSettings()">Reset</div>
+        </div>
+      </div>
+
+      <div class="ui mini modal reset-replacements-modal">
+        <div class="header">Reset Replacements</div>
+        <div class="content">
+          <p>Are you sure you want to reset all replacements?</p>
+        </div>
+        <div class="actions">
+          <div class="ui button" onclick="$('.ui.modal.reset-replacements-modal').modal('hide')">Cancel</div>
+          <div class="ui red button" onclick="resetReplacements()">Reset</div>
         </div>
       </div>
 
@@ -219,6 +320,75 @@
           <label id="outputConfidence" class="confidence">Confidence: —</label>
         </p>
       </div>
+    </div>
+
+    <div id="templates" style="display: none">
+      <table id="replacementEntryTemplate">
+        <tbody>
+          <tr>
+            <td class="table-button"><i class="grip vertical icon hover-button grip-button draggable"></i></td>
+            <td class="table-cell"><div class="ui fluid transparent input"><input class="ui segment table-cell-input options phrase" type="text" value="" placeholder="Type here..." oninput="onPhraseUpdate(this)"></input></div></td>
+            <td class="table-cell"><div class="ui fluid transparent input"><input class="ui segment table-cell-input options replacement" type="text" value="" placeholder="Empty text" oninput="updateReplacementsList()"></input></div></td>
+            <td class="table-button">
+              <div class="ui dropdown hover-button item replacement-dropdown new-replacement-dropdown" onclick="showReplacementDropdownMenu(this)">
+                <i class="ellipsis horizontal icon"></i>
+                <div class="left menu replacement-menu">
+                  <div class="item dropdown-checkbox">
+                    <div class="ui left floated checkbox full-match-checkbox new-full-match-replacement-checkbox">
+                      <input type="checkbox">
+                      <label class="dropdown-checkbox-label">Full Match</label>
+                    </div>
+                  </div>
+                  <div class="item dropdown-checkbox">
+                    <div class="ui left floated checkbox remove-leading-space-checkbox new-replacement-checkbox">
+                      <input type="checkbox">
+                      <label class="dropdown-checkbox-label">Remove Leading Space</label>
+                    </div>
+                  </div>
+                  <div class="item dropdown-checkbox">
+                    <div class="ui left floated checkbox remove-trailing-space-checkbox new-replacement-checkbox">
+                      <input type="checkbox">
+                      <label class="dropdown-checkbox-label">Remove Trailing Space</label>
+                    </div>
+                  </div>
+                  <div class="item dropdown-button" onclick="deleteReplacementEntry(this)"><div class="ui fluid compact red button">Delete</div></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table id="replacementsTableClone" class="ui compact celled unstackable scrolling table draggable">
+        <thead>
+          <tr>
+            <th class="table-button draggable"></th>
+            <th class="table-cell draggable">Phrase</th>
+            <th class="table-cell draggable">Replacement</th>
+            <th class="table-button draggable"></th>
+          </tr>
+        </thead>
+        <tbody id="replacementEntriesClone" class="replacement-entries clone-list draggable">
+        </tbody>
+        <tfoot>
+          <tr>
+            <th class="table-footer draggable" colspan="4">
+              <span class="ui grey text left table-footer-text">Priority: Top🡒Bottom</span>
+              <div class="right floated">
+                <div class="ui button footer-button export-button draggable"><i class="file export icon export-icon"></i></div>
+              </div>
+              <div class="right floated draggable">
+                <div class="ui disabled button footer-button draggable"><i class="file import icon import-icon"></i></div>
+              </div>
+              <div class="right floated draggable">
+                <div class="ui button footer-button draggable"><i class="plus icon plus-icon"></i></div>
+              </div>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+
+      <table id="replacementsTableCloneRowContainer" class="ui compact celled unstackable scrolling table table-clone-row-container"></table>
     </div>
 
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
