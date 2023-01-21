@@ -1,4 +1,13 @@
-var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition || mozSpeechRecognition || msSpeechRecognition;
+let SpeechRecognition;
+try {
+    SpeechRecognition = SpeechRecognition || webkitSpeechRecognition || mozSpeechRecognition || msSpeechRecognition;
+} catch (err) {
+    console.error(err);
+    $('div#speech-recognition-unsupported').nag({
+        storageMethod: null,
+        persist: true
+    }).nag('show');
+}
 // var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList || mozSpeechGrammarList || msSpeechGrammarList;
 // var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent || mozSpeechGrammarList || msSpeechGrammarList;
 
@@ -33,7 +42,8 @@ function getStringCookie(cname, cdefault) {
 }
 
 const diagnosticPara = document.querySelector('label#outputDiag');
-const outputConfidence = document.querySelector('label#outputConfidence');
+// const outputConfidence = document.querySelector('label#outputConfidence');
+const outputStatus = document.querySelector('label#outputStatus');
 const diagnostics = document.querySelector('p#diagnostics');
 const startButtonInfo = document.querySelector('p#startButtonInfo');
 const startButton = document.querySelector('button#startButton');
@@ -108,6 +118,7 @@ async function triggerMicrophone() {
     await recognition.start();
     await recognition.stop();
 }
+
 triggerMicrophone();
 
 // Languages that don't use spaces for dividing words
@@ -1362,10 +1373,6 @@ function updateOutputLangOptions() {
     }
 }
 
-$('select#searchSelectOutput').change(() => {
-    updateOutputLangOptions();
-});
-
 let initOptions = true;
 
 $optionsButton.click(() => {
@@ -1385,7 +1392,6 @@ $optionsButton.click(() => {
             "$('.message').attr('onclick', 'resetDropdownInput(this)');",
         );
 
-        $('.dropdown-search').dropdown({ fullTextSearch: 'exact' });
         $('.dropdown-select').dropdown();
 
         initOptions = false;
@@ -1732,13 +1738,9 @@ const replacementsTableMouseMoveHandler = function (e) {
         cells[cells.length - 1].style.width = `${parseFloat(cells[0].width) + parseFloat(cellBorderWidth)}px`;
     }
 
-    // Set position for dragging element
-    draggingEle.style.top = `${draggingEle.offsetTop + e.clientY - replacementsY}px`;
-    draggingEle.style.left = `${draggingEle.offsetLeft + e.clientX - replacementsX}px`;
-
-    // Reassign the position of mouse
-    replacementsX = e.clientX;
-    replacementsY = e.clientY;
+    // Get position for dragging element
+    const draggingOffsetTop = draggingEle.offsetTop;
+    const draggingOffsetLeft = draggingEle.offsetLeft;
 
     // The current order
     // prevEle
@@ -1747,12 +1749,15 @@ const replacementsTableMouseMoveHandler = function (e) {
     // nextEle
     const prevEle = draggingEle.previousElementSibling;
     const nextEle = replacementsPlaceholder.nextElementSibling;
+    const prevEleHeight = window.getComputedStyle(prevEle).height;
+    const nextEleHeight = window.getComputedStyle(nextEle).height;
+    const abovePrevEle = prevEle ? isNodeAbove(draggingEle, prevEle) : false;
+    const belowNextEle = nextEle ? isNodeAbove(nextEle, draggingEle) : false;
 
-    // The dragging element is above the previous element
-    // User moves the dragging element to the top
-    // We don't allow to drop above the header
-    // (which doesn't have `previousElementSibling`)
-    if (prevEle && isNodeAbove(draggingEle, prevEle)) {
+    if (prevEle && abovePrevEle) {
+        // The dragging element is above the previous element
+        // User moves the dragging element to the top
+
         // The current order    -> The new order
         // prevEle              -> replacementsPlaceholder
         // draggingEle          -> draggingEle
@@ -1761,7 +1766,7 @@ const replacementsTableMouseMoveHandler = function (e) {
         swapNodes(replacementsPlaceholder, prevEle);
         if (Array.prototype.indexOf.call(replacementsPlaceholder.parentNode.children, replacementsPlaceholder) === 0) {
             const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
-            replacementsPlaceholder.style.height = window.getComputedStyle(prevEle).height;
+            replacementsPlaceholder.style.height = prevEleheight;
 
             prevEle.style.height = replacementsPlaceholderHeight;
             for (let cell of prevEle.querySelector('tr').children) {
@@ -1772,11 +1777,10 @@ const replacementsTableMouseMoveHandler = function (e) {
             replacementsPlaceholder.style.borderTopWidth = '0px';
         }
         return;
-    }
+    } else if (nextEle && belowNextEle) {
+        // The dragging element is below the next element
+        // User moves the dragging element to the bottom
 
-    // The dragging element is below the next element
-    // User moves the dragging element to the bottom
-    if (nextEle && isNodeAbove(nextEle, draggingEle)) {
         // The current order       -> The new order
         // draggingEle             -> nextEle
         // replacementsPlaceholder -> replacementsPlaceholder
@@ -1789,18 +1793,27 @@ const replacementsTableMouseMoveHandler = function (e) {
             replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
             replacementsPlaceholder.style.borderTopStyle = 'solid';
             replacementsPlaceholder.style.borderTopWidth = cellBorderWidth;
-            replacementsPlaceholder.style.height = `${parseFloat(window.getComputedStyle(nextEle).height)}px`;
+            replacementsPlaceholder.style.height = nextEleHeight;
 
-            nextEle.style.height = `${parseFloat(replacementsPlaceholderHeight)}px`;
+            nextEle.style.height = replacementsPlaceholderHeight;
             for (let cell of nextEle.querySelector('tr').children) {
                 cell.style.borderTopWidth = '0px';
                 cell.style.height = replacementsPlaceholderHeight;
             }
         }
     }
+
+    // Set position for dragging element
+    draggingEle.style.top = `${draggingOffsetTop + e.clientY - replacementsY}px`;
+    draggingEle.style.left = `${draggingOffsetLeft + e.clientX - replacementsX}px`;
+    console.log(draggingEle.style.left);
+
+    // Reassign the position of mouse
+    replacementsX = e.clientX;
+    replacementsY = e.clientY;
 };
 
-const replacementsTableMouseUpHandler = function () {
+const replacementsTableMouseUpHandler = function() {
     if (replacementsBodyClone === undefined ||
         replacementsPlaceholder.parentNode === null ||
         replacementsTableClone.parentNode === null) {
@@ -2170,7 +2183,7 @@ function appendTranscript(text, untranslatedText, inputLang, translationLang, li
     transcriptContainer.appendChild(transcriptPlay);
 
     // Translation
-    const translated = inputLang !== translationLang;
+    const translated = inputLang !== translationLang && translateEnabled;
     const transcriptTranslation = document.createElement('div');
     if (translated) {
         const transcriptTranslationInfo = document.createElement('div');
@@ -2340,11 +2353,13 @@ function gotDevices(deviceInfos) {
             select.removeChild(select.firstChild);
         }
     });
+
     if (audioInputSelectionDisabled) {
         const option = document.createElement('option');
         option.text = 'Set in browser';
         audioInputSelect.appendChild(option);
     }
+
     for (let i = 0; i !== deviceInfos.length; ++i) {
         const deviceInfo = deviceInfos[i];
         const option = document.createElement('option');
@@ -2361,6 +2376,7 @@ function gotDevices(deviceInfos) {
             // console.info('Some other kind of source/device: ', deviceInfo);
         }
     }
+
     selectors.forEach((select, selectorIndex) => {
         if (
             Array.prototype.slice
@@ -2441,22 +2457,33 @@ navigator.mediaDevices
     .then(gotDevices)
     .catch(handleError);
 
-function updateLangCookies() {
+let updateLangCookies = function() {
     setCookie('vts-langInputSelect', langInputSelect.selectedIndex);
     setCookie('vts-langOutputSelect', langOutputSelect.selectedIndex);
 }
 
-function restartSpeech() {
-    updateLangCookies();
+let restartSpeech = function() {
     if (buttonState === 1) {
         recognition = new SpeechRecognition();
         testSpeech();
     }
 }
 
-audioOutputSelect.onchange = changeAudioDestination;
-langInputSelect.onchange = restartSpeech;
-langOutputSelect.onchange = updateLangCookies;
+$('.dropdown-search').dropdown({ fullTextSearch: 'exact' });
+
+audioOutputSelect.onchange = function() {
+    changeAudioDestination();
+}
+
+langInputSelect.onchange = function() {
+    updateLangCookies();
+    restartSpeech();
+}
+
+langOutputSelect.onchange = function() {
+    updateLangCookies();
+    updateOutputLangOptions();
+}
 
 //
 
@@ -2501,7 +2528,7 @@ function sendJsonRequest(method, url, jsonPayload) {
         let xhr = new XMLHttpRequest();
         xhr.open(method, url);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function () {
+        xhr.onload = function() {
             if (this.status >= 200 && this.status < 300) {
                 resolve(xhr.response);
             } else {
@@ -2511,7 +2538,7 @@ function sendJsonRequest(method, url, jsonPayload) {
                 });
             }
         };
-        xhr.onerror = function () {
+        xhr.onerror = function() {
             reject({
                 status: this.status,
                 statusText: xhr.statusText
@@ -2578,17 +2605,13 @@ async function playAudio(audioURL, stop, fromTranscript) {
         const activeAudioElement = $('.active-audio');
         hideTranscriptHover(activeAudioElement.parent().parent());
         try {
-            activeAudioElement
-                .children('i')[0]
-                .setAttribute('class', 'play circle outline icon');
+            activeAudioElement.children('i')[0].setAttribute('class', 'play circle outline icon');
             activeAudioElement.removeClass('active-audio');
         } catch (err) {
             // Do nothing
         }
     };
-    audio
-        .play()
-        .then(() => {
+    audio.play().then(() => {
             // ~console.info("response");
             timeoutTimes = 0;
         })
@@ -2597,11 +2620,13 @@ async function playAudio(audioURL, stop, fromTranscript) {
             // ~console.info("error playTTS");
             console.error(err);
             timeoutTimes += 1;
-            if (timeoutTimes > 5) {
+            if (timeoutTimes > 3) {
                 timeoutTimes = 0;
             } else {
-                console.info(`Trying again ${timeoutTimes}`);
-                playAudio(audioURL, false, false);
+                console.info(`Failed to play audio, trying again. Current attempt: ${timeoutTimes}`);
+                setTimeout(() => {
+                    playAudio(audioURL, false, false);
+                }, 500);
             }
         });
 }
@@ -2707,7 +2732,7 @@ async function playTTS(speech, ttsEnabled, interimAddition = false, padSpacing =
             }
         }
 
-        if ((ttsEnabled && noSpeech) || (!ttsEnabled && noSpeechIntentional) || (!ttsEnabled && noSpeechEncoded)) {
+        if ((ttsEnabled && noSpeech) || (!ttsEnabled && noSpeechIntentional) || (!ttsEnabled && noSpeechEncoded && !noSpeech)) {
             appendTranscript(speechText, untranslatedSpeechText, inputLang, translationLang, "");
         } else if (!noSpeech && !noSpeechEncoded) {
             let audioURL = "";
@@ -2767,57 +2792,114 @@ async function playBufferedTTS(speech, interimAddition = false, split = true) {
     playTTS(speechBuffer.shift(), false, interimAddition, padSpacing);
 }
 
-// intspeech = interim_speech
-let lastIntspeechList = [];
-let intspeechIndex = 0;
-let lastIntspeech = '';
-let intspeechLength = 0;
+// // intspeech = interim_speech
+// let lastIntspeechList = [];
+// let intspeechIndex = 0;
+// let lastIntspeech = '';
+// let intspeechLength = 0;
+
+// async function playSpacedLangTTS(intspeech) {
+//     let intspeechList = intspeech.split(' ');
+//     // Remove empty strings
+//     intspeechList = intspeechList.filter(el => el);
+
+//     // Reset if intspeech was cleared out
+//     if (intspeechList.length === 0) {
+//         intspeechIndex = 0;
+//     }
+
+//     // Validate based on spacing
+//     // Store the index of new appended speech in the list
+//     const currIntspeechIndex = intspeechIndex;
+//     lastIntspeechList = intspeechList;
+
+//     // Wait a predefined time to check for silence before speaking interim speech
+//     await wait(interimWait);
+
+//     // If the interim speech did not change after the wait, there was enough silence to begin speaking
+//     if (intspeechList === lastIntspeechList || (currIntspeechIndex > 0 &&)) {
+//         intspeechIndex = intspeechList.length;
+//         const interimAddition = currIntspeechIndex > 0;
+//         playBufferedTTS(intspeechList.splice(currIntspeechIndex), interimAddition, false);
+//     }
+// }
+
+// async function playNonSpacedLangTTS(intspeech) {
+//     // Reset if intspeech was cleared out
+//     if (intspeech.length === 0) {
+//         intspeechLength = 0;
+//     }
+
+//     // Validate based on length
+//     // Store the length of new appended speech in the string
+//     const currIntspeechLength = intspeechLength;
+//     lastIntspeech = intspeech;
+
+//     // Wait a predefined time to check for silence before speaking interim speech
+//     await wait(interimWait);
+
+//     // If the interim speech did not change after the wait, there was enough silence to begin speaking
+//     if (lastIntspeech === intspeech && intspeechLength < intspeech.length) {
+//         intspeechLength = intspeech.length;
+//         const interimAddition = currIntspeechLength > 0;
+//         playBufferedTTS(intspeech.slice(currIntspeechLength), interimAddition, true);
+//     }
+// }
+
+let latestIntspeechIndex = 0;
+let latestIntspeechList = [];
+let intspeechTimeoutList = [];
+
+function resetIntspeechState() {
+    latestIntspeechList = [];
+    latestIntspeechIndex = 0;
+    intspeechTimeoutList.forEach(intspeechTimeout => clearTimeout(intspeechTimeout));
+    intspeechTimeoutList = [];
+}
 
 async function playSpacedLangTTS(intspeech) {
-    let intspeechList = intspeech.split(' ');
-    // Remove empty strings
-    intspeechList = intspeechList.filter(el => el);
-
-    // Reset if intspeech was cleared out
-    if (intspeechList.length === 0) {
-        intspeechIndex = 0;
-    }
-
-    // Validate based on spacing
-    // Store the index of new appended speech in the list
-    const currIntspeechIndex = intspeechIndex;
-    lastIntspeechList = intspeechList;
-
-    // Wait a predefined time to check for silence before speaking interim speech
-    await wait(interimWait);
-
-    // If the interim speech did not change after the wait, there was enough silence to begin speaking
-    if (lastIntspeechList === intspeechList) {
-        intspeechIndex = intspeechList.length;
-        interimAddition = currIntspeechIndex > 0;
-        playBufferedTTS(intspeechList.splice(currIntspeechIndex), interimAddition, false);
-    }
+    // Validate interim speech based on language with spacing
+    let intspeechList = intspeech.split(' ').filter(el => el);
+    playInterimTTSHelper(intspeechList, false);
 }
 
 async function playNonSpacedLangTTS(intspeech) {
-    // Reset if intspeech was cleared out
-    if (intspeech.length === 0) {
-        intspeechLength = 0;
-    }
+    // Validate interim speech based on language with no spacing
+    playInterimTTSHelper(intspeech, true);
+}
 
-    // Validate based on length
-    // Store the length of new appended speech in the string
-    const currIntspeechLength = intspeechLength;
-    lastIntspeech = intspeech;
+async function playInterimTTSHelper(intspeechList, nonSpacedLang = false) {
+    if (intspeechList.length === 0) {
+        if (latestIntspeechList.length > 0) {
+            // If intspeech was cleared out and latest intspeech exists, reset state and read the latest intspeech immediately
+            let intspeechList = latestIntspeechList;
+            let intspeechIndex = latestIntspeechIndex;
 
-    // Wait a predefined time to check for silence before speaking interim speech
-    await wait(interimWait);
+            resetIntspeechState();
 
-    // If the interim speech did not change after the wait, there was enough silence to begin speaking
-    if (lastIntspeech === intspeech && intspeechLength < intspeech.length) {
-        intspeechLength = intspeech.length;
-        interimAddition = currIntspeechLength > 0;
-        playBufferedTTS(intspeech.slice(currIntspeechLength), interimAddition, true);
+            const interimAddition = intspeechIndex > 0;
+            playBufferedTTS(intspeechList.slice(intspeechIndex), interimAddition, nonSpacedLang);
+        } else {
+            // If intspeech was cleared out and there is nothing to say, reset state
+            resetIntspeechState();
+        }
+    } else if (intspeechList.length > 0) {
+        // Store the index of new appended speech in the list
+        latestIntspeechList = intspeechList;
+
+        // Wait a predefined time to check for silence before speaking interim speech
+        const intspeechTimeout = setTimeout(() => {
+            // If the interim speech did not change after the wait, there was enough silence to begin speaking
+            if (intspeechList === latestIntspeechList) {
+                let intspeechIndex = latestIntspeechIndex;
+                latestIntspeechIndex = intspeechList.length;
+
+                const interimAddition = intspeechIndex > 0;
+                playBufferedTTS(intspeechList.slice(intspeechIndex), interimAddition, nonSpacedLang);
+            }
+        }, interimWait);
+
+        intspeechTimeoutList.push(intspeechTimeout);
     }
 }
 
@@ -2846,6 +2928,17 @@ function capitalize(s) {
 }
 */
 
+let outputStatusTimeout = null;
+async function updateOutputStatus(text) {
+    outputStatus.textContent = `Status: ${text}`;
+    clearTimeout(outputStatusTimeout);
+    outputStatusTimeout = setTimeout(() => {
+        outputStatus.textContent = 'Status: —';
+    }, 3000);
+}
+
+let lastInterimTranscript = '';
+
 function testSpeech() {
     // startButton.disabled = true;
     // startButton.textContent = 'In progress';
@@ -2869,12 +2962,14 @@ function testSpeech() {
         // Do nothing
     }
 
-    // Reset intspeechIndex and intspeechLength on start
-    intspeechIndex = 0;
-    intspeechLength = 0;
+    // Reset intspeech state on start to avoid reading old intspeech
+    // intspeechIndex = 0;
+    // intspeechLength = 0;
+    resetIntspeechState();
 
     recognition.onresult = function onresult(event) {
         console.info('SpeechRecognition.onresult');
+        updateOutputStatus('speech result');
         // The SpeechRecognitionEvent results property returns a SpeechRecognitionResultList object
         // The SpeechRecognitionResultList object contains SpeechRecognitionResult objects.
         // It has a getter so it can be accessed like an array
@@ -2918,33 +3013,52 @@ function testSpeech() {
             if (buttonState === 1) {
                 // let speechResult = event.results[0][0].transcript;
                 let speechResult = interimTranscript;
-                let confidenceResult = event.results[event.results.length - 1][0].confidence;
+                // let confidenceResult = event.results[event.results.length - 1][0].confidence;
                 if (speechResult === '') {
+                    console.info("NOTHING");
+                    // if (lastInterimTranscript !== '') {
+                    //     speechResult = lastInterimTranscript;
+                    //     lastInterimTranscript = '';
+                    //     console.info('last');
+                    //     console.info(speechResult);
+                    //     playInterimTTS(speechResult);
+                    // } else {
+                    //     console.info('wtf');
+                    //     lastInterimTranscript = '';
+                    //     speechResult = '—';
+                    //     // confidenceResult = '—';
+                    // }
+                    // playInterimTTS('');
+
                     speechResult = '—';
-                    confidenceResult = '—';
                     playInterimTTS('');
                 } else {
+                    console.info("result");
+                    // lastInterimTranscript = speechResult;
                     playInterimTTS(speechResult);
                 }
                 diagnosticPara.textContent = `Speech received: ${speechResult}`;
-                outputConfidence.textContent = `Confidence: ${confidenceResult}`;
+                console.info(speechResult);
+                // outputConfidence.textContent = `Confidence: ${confidenceResult}`;
             }
         } else if (buttonState === 1) {
             let speechResult = event.results[0][0].transcript;
-            let confidenceResult = event.results[0][0].confidence;
+            // let confidenceResult = event.results[0][0].confidence;
             if (speechResult === '') {
                 speechResult = '—';
-                confidenceResult = '—';
+                // confidenceResult = '—';
             } else {
                 playBufferedTTS(speechResult, false, true);
             }
             diagnosticPara.textContent = `Speech received: ${speechResult}`;
-            outputConfidence.textContent = `Confidence: ${confidenceResult}`;
+            // outputConfidence.textContent = `Confidence: ${confidenceResult}`;
         }
     };
 
     recognition.onspeechend = function onspeechend() {
-        recognition.stop();
+        // recognition.stop();
+        console.info('SpeechRecognition.speechend');
+        updateOutputStatus('speech ended');
         // startButton.disabled = false;
         // startButton.textContent = 'Start';
         if (buttonState === 1) {
@@ -2955,8 +3069,9 @@ function testSpeech() {
     recognition.onerror = function onerror(event) {
         // startButton.disabled = false;
         // startButton.textContent = 'Start';
-        console.info('SpeechRecognition.onerror');
+        console.info('SpeechRecognition.error');
         console.info(event);
+        updateOutputStatus('recognition error');
         if (buttonState === 1) {
             diagnosticPara.textContent = `Error occurred in recognition: ${event.error}`;
             if (event.error === 'audio-capture') {
@@ -2970,11 +3085,13 @@ function testSpeech() {
     recognition.onaudiostart = function onaudiostart() {
         // Fired when the user agent has started to capture audio.
         console.info('SpeechRecognition.audiostart');
+        updateOutputStatus('audio capture started');
     };
 
     recognition.onaudioend = function onaudioend() {
         // Fired when the user agent has finished capturing audio.
         console.info('SpeechRecognition.audioend');
+        updateOutputStatus('audio capture ended');
         if (buttonState === 1) {
             restartSpeech();
         }
@@ -2983,13 +3100,16 @@ function testSpeech() {
     recognition.onend = function onend() {
         // Fired when the speech recognition service has disconnected.
         console.info('SpeechRecognition.end');
+        updateOutputStatus('recognition ended');
 
         if (buttonState === -1) {
             console.info('SpeechRecognition.stopped');
+            updateOutputStatus('recognition stopped');
             if (socketEnabled) {
                 socket.emit('status', 'stopped');
             }
             buttonState = 0;
+            diagnosticPara.textContent = 'Speech received: —';
             startButtonInfo.textContent = 'Press start to begin speech recognition';
             startButton.textContent = 'Start';
             startButton.disabled = false;
@@ -3002,12 +3122,14 @@ function testSpeech() {
         // with no significant recognition. This may involve some degree of
         // recognition, which doesn't meet or exceed the confidence threshold.
         console.info('SpeechRecognition.nomatch');
+        updateOutputStatus('recognition failed');
     };
 
     recognition.onsoundstart = function onsoundstart() {
         // Fired when any sound — recognisable speech or not — has been detected.
         if (buttonState === 1) {
             console.info('SpeechRecognition.soundstart');
+            updateOutputStatus('sound detected');
         }
     };
 
@@ -3015,6 +3137,7 @@ function testSpeech() {
         // Fired when any sound — recognisable speech or not — has stopped being detected.
         if (buttonState === 1) {
             console.info('SpeechRecognition.soundend');
+            updateOutputStatus('sound ended');
             if (socketEnabled) {
                 socket.emit('status', 'soundend');
             }
@@ -3026,6 +3149,7 @@ function testSpeech() {
         // recognition service as speech has been detected.
         if (buttonState === 1) {
             console.info('SpeechRecognition.speechstart');
+            updateOutputStatus('speech detected');
             if (socketEnabled) {
                 socket.emit('status', 'speechstart');
             }
@@ -3037,6 +3161,7 @@ function testSpeech() {
         // listening to incoming audio with intent to recognize
         // grammars associated with the current SpeechRecognition.
         console.info('SpeechRecognition.start');
+        updateOutputStatus('recognition started');
     };
 }
 
@@ -3055,6 +3180,8 @@ function resetOptions() {
 function resetSettings() {
     $resetSettingsModal.modal('hide');
     $resetSettingsNag.nag({
+        storageMethod: null,
+        persist: true,
         displayTime: 2000
     }).nag('show');
 
@@ -3070,6 +3197,8 @@ function resetSettings() {
 function resetReplacements() {
     $resetReplacementsModal.modal('hide');
     $resetReplacementsNag.nag({
+        storageMethod: null,
+        persist: true,
         displayTime: 2000
     }).nag('show');
 

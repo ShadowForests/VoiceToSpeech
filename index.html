@@ -23,6 +23,12 @@
   </head>
 
   <body>
+    <div id="speech-recognition-unsupported" class="ui red overlay nag" style="display: none;">
+      <span class="title">
+        Speech recognition not supported with this browser or browser settings. Known supported browsers: Chrome, Edge.
+      </span>
+      <i class="close icon"></i>
+    </div>
     <div id="reset-settings-nag" class="ui red overlay nag" style="display: none;">
       <span class="title">
         Reset all settings.
@@ -315,9 +321,10 @@
 
       <div class="center bottom-margin">
         <p id="diagnostics" class="output bottom-margin">
-          <label id="outputDiag">...diagnostic messages</label>
+          <label id="outputDiag">Speech received: —</label>
           </br>
-          <label id="outputConfidence" class="confidence">Confidence: —</label>
+          <!-- <label id="outputConfidence" class="confidence">Confidence: —</label> -->
+          <label id="outputStatus" class="confidence">Status: —</label>
         </p>
       </div>
     </div>

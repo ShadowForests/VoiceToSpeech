@@ -758,11 +758,13 @@ select {
   float: left;
   margin-left: 5px;
   white-space: pre;
+  overflow: hidden;
 }
 
 .transcript-empty-text {
   font-style: italic;
   color: lightgray;
+  overflow: hidden;
 }
 
 .transcript-link {
@@ -795,6 +797,8 @@ select {
   color: gray;
   float: left;
   margin-left: 5px;
+  white-space: pre;
+  overflow: hidden;
 }
 
 .copy-icon {
