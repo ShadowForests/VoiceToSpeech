@@ -1,26 +1,20 @@
-let SpeechRecognition;
+const _version = "0.1.0";
+document.querySelector("div#_version").textContent = `v${_version}`;
+
+let SpeechRecognition = null;
 try {
     SpeechRecognition = SpeechRecognition || webkitSpeechRecognition || mozSpeechRecognition || msSpeechRecognition;
 } catch (err) {
     console.error(err);
-    $('div#speech-recognition-unsupported').nag({
+    $('div#speechRecognitionUnsupportedNag').nag({
         storageMethod: null,
         persist: true
     }).nag('show');
 }
-// var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList || mozSpeechGrammarList || msSpeechGrammarList;
-// var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent || mozSpeechGrammarList || msSpeechGrammarList;
+// let SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList || mozSpeechGrammarList || msSpeechGrammarList;
+// let SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent || mozSpeechGrammarList || msSpeechGrammarList;
 
-console.log = function disableLog() {};
-
-const socket = io.connect('http://localhost:3000');
-
-socket.on('connect_error', () => {
-    console.info(
-        'SOCKET: Restart to reconnect socket if using a personal server.',
-    );
-    socket.disconnect();
-});
+// Cookies
 
 function setCookie(cname, cvalue) {
     Cookies.set(cname, cvalue, { expires: 365 });
@@ -41,20 +35,39 @@ function getStringCookie(cname, cdefault) {
     return result === undefined ? cdefault : result;
 }
 
-const diagnosticPara = document.querySelector('label#outputDiag');
+// Target elements
+
+const outputSpeechStatus = document.querySelector('label#outputSpeechStatus');
 // const outputConfidence = document.querySelector('label#outputConfidence');
 const outputStatus = document.querySelector('label#outputStatus');
-const diagnostics = document.querySelector('p#diagnostics');
+const statusBar = document.querySelector('p#statusBar');
 const startButtonInfo = document.querySelector('p#startButtonInfo');
 const startButton = document.querySelector('button#startButton');
-const outputVoiceText = document.querySelector('p#outputVoiceText');
-const audioOutputText = document.querySelector('p#audioOutputText');
+const outputDeviceText = document.querySelector('p#outputDeviceText');
+
+const tabSettings = document.querySelector('div#tabSettings');
+const tabReplacements = document.querySelector('div#tabReplacements');
+
+const $tabSettingsButton = $('a#tabSettingsButton');
+const $tabReplacementsButton = $('a#tabReplacementsButton');
+const $tabAboutButton = $('a#tabAboutButton');
+
 const $optionsButton = $('button#optionsButton');
+const $optionsContainer = $('div#optionsContainer');
+const $optionsModal = $('div#optionsModal');
+const $uiMenuButton = $('button#uiMenuButton');
+const $uiMenuModal = $('div#uiMenuModal');
+const $socketMenuButton = $('button#socketMenuButton');
+const $socketMenuModal = $('div#socketMenuModal');
+
 const $resetOptionsButton = $('i#resetOptionsButton');
-const $resetSettingsModal = $('.ui.modal.reset-settings-modal');
-const $resetSettingsNag = $('div#reset-settings-nag');
-const $resetReplacementsModal = $('.ui.modal.reset-replacements-modal');
-const $resetReplacementsNag = $('div#reset-replacements-nag');
+const $resetSettingsModal = $('div#resetSettingsModal');
+const $resetSettingsNag = $('div#resetSettingsNag');
+const $resetReplacementsModal = $('div#resetReplacementsModal');
+const $resetReplacementsNag = $('div#resetReplacementsNag');
+const $clearTranscriptModal = $('div#clearTranscriptModal');
+const $clearTranscriptNag = $('div#clearTranscriptNag');
+
 const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
 const $transcriptDropdown = $('div#transcriptDropdown');
@@ -62,32 +75,49 @@ const $transcriptCopy = $('i#transcriptCopy');
 const $timestampsButton = $('div#timestampsCheckbox');
 const $translationsButton = $('div#translationsCheckbox');
 const $clearTranscriptButton = $('div#clearTranscriptButton');
-const $replacementsTable = document.querySelector('table#replacementsTable');
-const $replacementEntries = document.querySelector('tbody#replacementEntries');
+const $extraVoiceOptions = $('#extraVoiceOptions');
 const $socketButton = $('input#socketCheckbox');
 const $ttsButton = $('input#ttsCheckbox');
-const $diagnosticsButton = $('input#diagnosticsCheckbox');
+const $statusButton = $('input#statusCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
+const $latencyContainer = $('div#latencyContainer');
 const $translateButton = $('input#translateCheckbox');
+const $speakInputButton = $('input#speakInputCheckbox');
+
+const latencyInput = document.querySelector('input#latencyInput');
+const socketAddressInput = document.querySelector('input#socketAddressInput');
+const socketPortInput = document.querySelector('input#socketPortInput');
+
 const transcriptHeader = document.querySelector('div#transcriptHeader');
 const transcript = document.querySelector('div#transcript');
 const ttsHeader = document.querySelector('div#ttsHeader');
 const ttsArea = document.querySelector('div#ttsArea');
-const audioInputSelect = document.querySelector('select#audioSource');
-const audioOutputSelect = document.querySelector('select#audioOutput');
-const selectors = [audioInputSelect, audioOutputSelect];
-const langInputSelect = document.querySelector('select#searchSelectInput');
-const langOutputSelect = document.querySelector('select#searchSelectOutput');
+
+const inputDeviceSelect = document.querySelector('select#inputDevice');
+const outputDeviceSelect = document.querySelector('select#outputDevice');
+
+const deviceSelectors = [inputDeviceSelect, outputDeviceSelect];
+
+const inputLangSelect = document.querySelector('select#searchSelectInputLang');
+const outputVoiceSelect = document.querySelector('select#searchSelectOutputVoice');
+const outputLangSelect = document.querySelector('select#searchSelectOutputLang');
+
+const $syncLanguageButton = $('div#syncLanguageButton');
+const $syncLanguageIcon = $('i#syncLanguageIcon');
+const $syncLanguageIconOutline = $('i#syncLanguageIconOutline');
+const $syncLanguageErrorPopup = $('div#syncLanguageErrorPopup');
 
 const $templates = document.querySelector('div#templates');
+const $replacementsTable = document.querySelector('table#replacementsTable');
+const $replacementEntries = document.querySelector('tbody#replacementEntries');
 const $replacementEntryTemplate = document.querySelector('table#replacementEntryTemplate').firstElementChild.firstElementChild;
 const $replacementsTableClone = document.querySelector('table#replacementsTableClone');
 const $replacementsTableCloneRowContainer = document.querySelector('table#replacementsTableCloneRowContainer');
 
 $templates.remove();
 
+const $muteButton = $('#muteButton');
 const $volumeSlider = $('#volumeSlider');
-const $volumeMute = $('#volumeMute');
 const $volumeFill = $('#volumeFill');
 const $volumeThumb = $('#volumeThumb');
 const $pitchSlider = $('#pitchSlider');
@@ -99,19 +129,123 @@ const $pitchThumbSS = $('#pitchThumbSS');
 const $rateSliderSS = $('#rateSliderSS');
 const $rateThumbSS = $('#rateThumbSS');
 
-let socketEnabled = true;
-let timestampsEnabled = true;
-let translationsEnabled = true;
-let speakOriginalText = true;
+const voiceSetMapping = {
+    voiceSetA: "a",
+    voiceSetB: "b",
+    voiceSetC: "c",
+    voiceSetD: "d",
+    voiceSetE: "e",
+    voiceSetS: "s"
+}
+
+const cookieKeys = {
+    socketAddress: 'vts-socketAddress',
+    socketPort: 'vts-socketPort',
+
+    inputLangSelect: 'vts-inputLangSelect',
+    outputVoiceSelect: 'vts-outputVoiceSelect',
+    outputLangSelect: 'vts-outputLangSelect',
+    outputDeviceSelect: 'vts-outputDeviceSelect',
+    latency: 'vts-latency',
+
+    transcriptEnabled: 'vts-transcriptEnabled',
+    socketEnabled: 'vts-socketEnabled',
+    ttsEnabled: 'vts-ttsEnabled',
+    statusEnabled: 'vts-statusEnabled',
+    lowlatencyEnabled: 'vts-lowlatencyEnabled',
+    syncLanguageEnabled: 'vts-syncLanguageEnabled',
+    translateEnabled: 'vts-translateEnabled',
+    speakInputEnabled: 'vts-speakInputEnabled',
+    timestampsEnabled: 'vts-timestampsEnabled',
+    translationsEnabled: 'vts-translationsEnabled',
+    muteEnabled: 'vts-muteEnabled',
+
+    volume: 'vts-volume',
+    rate: 'vts-rate',
+    pitch: 'vts-pitch',
+
+    replacements: 'vts-replacements',
+}
+
+function getMuteEnabled() { return $muteButton.hasClass('mute'); }
+function getTranscriptEnabled() { return $transcriptButton.prop('checked'); }
+function getSocketEnabled() { return $socketButton.prop('checked'); }
+function getTtsEnabled() { return $ttsButton.prop('checked'); }
+function getStatusEnabled() { return $statusButton.prop('checked'); }
+function getLowlatencyEnabled() { return $lowlatencyButton.prop('checked'); }
+function getSyncLanguageEnabled() { return $syncLanguageIcon.hasClass('inverted'); }
+function getTranslateEnabled() { return $translateButton.prop('checked'); }
+function getSpeakInputEnabled() { return $speakInputButton.prop('checked'); }
+function getTimestampsEnabled() { return $timestampsButton.checkbox('is checked'); }
+function getTranslationsEnabled() { return $translationsButton.checkbox('is checked'); }
+
+// If the default is changed, change in html as well
+const defaultVtsState = {
+    socketAddress: "localhost",
+    socketPort: 3000,
+
+    inputLangSelect: "en-US",
+    outputVoiceSelect: voiceSetMapping.voiceSetA + "en-US",
+    outputLangSelect: "en",
+    outputDeviceSelect: "default",
+    latency: 1000,
+
+    transcriptEnabled: getTranscriptEnabled(),
+    socketEnabled: getSocketEnabled(),
+    ttsEnabled: getTtsEnabled(),
+    statusEnabled: getStatusEnabled(),
+    lowlatencyEnabled: getLowlatencyEnabled(),
+    syncLanguageEnabled: getSyncLanguageEnabled(),
+    translateEnabled: getTranslateEnabled(),
+    speakInputEnabled: getSpeakInputEnabled(),
+    timestampsEnabled: getTimestampsEnabled(),
+    translationsEnabled: getTranslationsEnabled(),
+    muteEnabled: getMuteEnabled(),
+
+    volume: 100,
+    rate: 1.0,
+    pitch: 1.0,
+
+}
+
+let vtsState = {...defaultVtsState};
+
 let buttonState = 0;
 let translateApi = 0;
-const interimWait = 300;
-const audioInputSelectionDisabled = true;
-let lowlatencyEnabled = $lowlatencyButton.prop('checked');
-let translateEnabled = $translateButton.prop('checked');
-let audio = new Audio();
+const inputDeviceSelectionDisabled = true;
 
-let recognition = new SpeechRecognition();
+let audio = new Audio();
+let audioDestination;
+
+let speechPlaying = false;
+let speechBuffer = [];
+let timeoutTimes = 0;
+
+let ranGotDevices = false;
+
+let recognition = null;
+try {
+    recognition = new SpeechRecognition();   
+} catch (err) {}
+
+let socket = null;
+function setupSocket() {
+    if (socket !== null) {
+        socket.disconnect();
+        socket.close();
+    }
+
+    socket = io.connect(`http://${vtsState.socketAddress}:${vtsState.socketPort}`);
+
+    socket.on('connect_error', () => {
+        console.info(
+            'SOCKET: Restart to reconnect socket if using a personal server.',
+        );
+        socket.disconnect();
+    });
+
+    socket.connect();
+}
 
 // Make microphone icon appear in browser
 async function triggerMicrophone() {
@@ -132,11 +266,7 @@ const nonSpacedLangs = [
     ['th-TH', 'Thai (Thailand)', 'ไทย (ประเทศไทย)'],
     ['vi-VN', 'Vietnamese (Vietnam)', 'Tiếng Việt (Việt Nam)'],
     ['zh-TW', 'Chinese, Mandarin (Traditional, Taiwan)', '國語 (台灣)'],
-    [
-        'yue-Hant-HK',
-        'Chinese, Cantonese (Traditional, Hong Kong)',
-        '廣東話 (香港)',
-    ],
+    ['yue-Hant-HK', 'Chinese, Cantonese (Traditional, Hong Kong)', '廣東話 (香港)'],
     ['ja-JP', 'Japanese (Japan)', '日本語（日本）'],
     ['zh-HK', 'Chinese, Mandarin (Simplified, Hong Kong)', '普通話 (香港)'],
     ['zh-CN', 'Chinese, Mandarin (Simplified, China)', '普通话 (中国大陆)'],
@@ -271,8 +401,9 @@ const outputVoices = [
     ['af-ZA', 'Afrikaans (South Africa)', 'Afrikaans (Suid-Afrika)'],
     ['sq-AL', 'Albanian (Albania)', 'Shqip (Shqipëria)'],
     // ['am-ET', 'Amharic (Ethiopia)', 'አማርኛ (ኢትዮጵያ)'],
-    ['ar-XA', 'Arabic', 'العربية'],
-    ['hy-AM', 'Armenian (Armenia)', 'Հայերեն (Հայաստան)'],
+    // ['ar-XA', 'Arabic', 'العربية'],
+    ['ar-SA', 'Arabic (Saudi Arabia)', 'العربية (السعودية)'],
+    // ['hy-AM', 'Armenian (Armenia)', 'Հայերեն (Հայաստան)'],
     // ['as-IN', 'Assamese (India)', 'অসমীয়া (ভাৰত)'],
     // ['az-AZ', 'Azerbaijani (Azerbaijan)', 'Azərbaycan (Azərbaycan)'],
     ['id-ID', 'Indonesian (Indonesia)', 'Bahasa Indonesia (Indonesia)'],
@@ -341,7 +472,6 @@ const outputVoices = [
     ['uk-UA', 'Ukrainian (Ukraine)', 'Українська (Україна)'],
     ['ur-IN', 'Urdu (India)', 'اردو (بھارت)'],
     ['ur-PK', 'Urdu (Pakistan)', 'اردو (پاکستان)'],
-    ['ar-SA', 'Arabic (Saudi Arabia)', 'العربية (السعودية)'],
     // ['fa-IR', 'Persian (Iran)', 'فارسی (ایران)'],
     ['hi-IN', 'Hindi (India)', 'हिन्दी (भारत)'],
     ['th-TH', 'Thai (Thailand)', 'ไทย (ประเทศไทย)'],
@@ -540,20 +670,20 @@ const seVoices = [
 ];
 
 const seVoices2 = [
-    ['es-LA:es-LA_SofiaVoice', 'es-LA_SofiaVoice (Spanish)'],
-    ['pt-BR:pt-BR_IsabelaVoice', 'pt-BR_IsabelaVoice (Brazilian Portuguese)'],
-    ['en-US:en-US_MichaelVoice', 'en-US_MichaelVoice (US English)'],
-    ['ja-JP:ja-JP_EmiVoice', 'ja-JP_EmiVoice (Japanese)'],
-    ['en-US:en-US_AllisonVoice', 'en-US_AllisonVoice (US English)'],
-    ['fr-FR:fr-FR_ReneeVoice', 'fr-FR_ReneeVoice (French)'],
-    ['it-IT:it-IT_FrancescaVoice', 'it-IT_FrancescaVoice (Italian)'],
-    ['es-ES:es-ES_LauraVoice', 'es-ES_LauraVoice (Spanish)'],
-    ['de-DE:de-DE_BirgitVoice', 'de-DE_BirgitVoice (Deutsch)'],
-    ['es-ES:es-ES_EnriqueVoice', 'es-ES_EnriqueVoice (Spanish)'],
-    ['de-DE:de-DE_DieterVoice', 'de-DE_DieterVoice (Deutsch)'],
-    ['en-US:en-US_LisaVoice', 'en-US_LisaVoice (US English)'],
-    ['en-GB:en-GB_KateVoice', 'en-GB_KateVoice (British English)'],
-    ['es-US:es-US_SofiaVoice', 'es-US_SofiaVoice (US Spanish)'],
+    // ['es-LA:es-LA_SofiaVoice', 'es-LA_SofiaVoice (Spanish)'],
+    // ['pt-BR:pt-BR_IsabelaVoice', 'pt-BR_IsabelaVoice (Brazilian Portuguese)'],
+    // ['en-US:en-US_MichaelVoice', 'en-US_MichaelVoice (US English)'],
+    // ['ja-JP:ja-JP_EmiVoice', 'ja-JP_EmiVoice (Japanese)'],
+    // ['en-US:en-US_AllisonVoice', 'en-US_AllisonVoice (US English)'],
+    // ['fr-FR:fr-FR_ReneeVoice', 'fr-FR_ReneeVoice (French)'],
+    // ['it-IT:it-IT_FrancescaVoice', 'it-IT_FrancescaVoice (Italian)'],
+    // ['es-ES:es-ES_LauraVoice', 'es-ES_LauraVoice (Spanish)'],
+    // ['de-DE:de-DE_BirgitVoice', 'de-DE_BirgitVoice (Deutsch)'],
+    // ['es-ES:es-ES_EnriqueVoice', 'es-ES_EnriqueVoice (Spanish)'],
+    // ['de-DE:de-DE_DieterVoice', 'de-DE_DieterVoice (Deutsch)'],
+    // ['en-US:en-US_LisaVoice', 'en-US_LisaVoice (US English)'],
+    // ['en-GB:en-GB_KateVoice', 'en-GB_KateVoice (British English)'],
+    // ['es-US:es-US_SofiaVoice', 'es-US_SofiaVoice (US Spanish)'],
     ['es-ES:es-ES-Standard-A', 'es-ES-Standard-A (Spanish)'],
     ['it-IT:it-IT-Standard-A', 'it-IT-Standard-A (Italian)'],
     ['it-IT:it-IT-Wavenet-A', 'it-IT-Wavenet-A (Italian)'],
@@ -727,7 +857,14 @@ const ttVoices = [
 ];
 
 // https://github.com/d4n3436/GTranslate/blob/97dea660453e2fb7ee0fd4f0db32b8efe7b86845/src/GTranslate/LanguageDictionary.cs
-const translationLanguages = [
+const outputLangMapping = {
+    "nb-NO": "no",
+    "yue-Hant-HK": "zh-TW",
+    "zh-TW": "zh-TW",
+    "zh-HK": "zh-CN"
+}
+
+const outputLangs = [
     ['af', 'Afrikaans (Afrikaans)'],
     ['sq', 'Albanian (Shqip)'],
     ['am', 'Amharic (አማርኛ)'],
@@ -963,7 +1100,7 @@ function addVoiceSetDivider() {
     const divider = document.createElement('option');
     divider.value = 'divider';
     divider.text = '';
-    langOutputSelect.appendChild(divider);
+    outputVoiceSelect.appendChild(divider);
 }
 
 function addVoiceSetA() {
@@ -972,13 +1109,13 @@ function addVoiceSetA() {
     header.value = 'header';
     // header2.text = "🔊 Language Voices"
     header.text = '🔊 Voice Set A [Default]';
-    langOutputSelect.appendChild(header);
+    outputVoiceSelect.appendChild(header);
 
     for (let i = 0; i < outputVoices.length; ++i) {
         const option = document.createElement('option');
-        option.value = "a" + outputVoices[i][0];
+        option.value = voiceSetMapping.voiceSetA + outputVoices[i][0];
         option.text = outputVoices[i][1];
-        langOutputSelect.appendChild(option);
+        outputVoiceSelect.appendChild(option);
     }
 }
 
@@ -987,13 +1124,13 @@ function addVoiceSetB() {
     const header = document.createElement('option');
     header.value = 'header';
     header.text = '🔊 Voice Set B [Special]';
-    langOutputSelect.appendChild(header);
+    outputVoiceSelect.appendChild(header);
 
     for (let i = 0; i < rvVoices.length; i += 1) {
         const option = document.createElement('option');
-        option.value = "b" + rvVoices[i][0];
+        option.value = voiceSetMapping.voiceSetB + rvVoices[i][0];
         option.text = rvVoices[i][1];
-        langOutputSelect.appendChild(option);
+        outputVoiceSelect.appendChild(option);
     }
 }
 
@@ -1002,13 +1139,13 @@ function addVoiceSetC() {
     const header = document.createElement('option');
     header.value = 'header';
     header.text = '🔊 Voice Set C [StreamElements]';
-    langOutputSelect.appendChild(header);
+    outputVoiceSelect.appendChild(header);
 
     for (let i = 0; i < seVoices.length; i += 1) {
       const option = document.createElement('option');
-      option.value = "c" + seVoices[i][0];
+      option.value = voiceSetMapping.voiceSetC + seVoices[i][0];
       option.text = seVoices[i][1];
-      langOutputSelect.appendChild(option);
+      outputVoiceSelect.appendChild(option);
     }
 }
 
@@ -1017,13 +1154,13 @@ function addVoiceSetD() {
     const header = document.createElement('option');
     header.value = 'header';
     header.text = '🔊 Voice Set D [WaveNet]';
-    langOutputSelect.appendChild(header);
+    outputVoiceSelect.appendChild(header);
 
     for (let i = 0; i < seVoices2.length; i += 1) {
       const option = document.createElement('option');
-      option.value = "d" + seVoices2[i][0];
+      option.value = voiceSetMapping.voiceSetD + seVoices2[i][0];
       option.text = seVoices2[i][1];
-      langOutputSelect.appendChild(option);
+      outputVoiceSelect.appendChild(option);
     }
 }
 
@@ -1032,56 +1169,119 @@ function addVoiceSetE() {
     const header = document.createElement('option');
     header.value = 'header';
     header.text = '🔊 Voice Set E [TikTok]';
-    langOutputSelect.appendChild(header);
+    outputVoiceSelect.appendChild(header);
 
     for (let i = 0; i < ttVoices.length; i += 1) {
       const option = document.createElement('option');
-      option.value = "e" + ttVoices[i][0];
+      option.value = voiceSetMapping.voiceSetE + ttVoices[i][0];
       option.text = ttVoices[i][1];
-      langOutputSelect.appendChild(option);
+      outputVoiceSelect.appendChild(option);
     }
 }
 
 function addVoiceSetBuiltin() {
-        // Header
-        const header = document.createElement('option');
-        header.value = 'header';
-        header.text = "🔊 Built-in Voices"
-        langOutputSelect.appendChild(header);
+    // Header
+    const header = document.createElement('option');
+    header.value = 'header';
+    header.text = "🔊 Built-in Voices"
+    outputVoiceSelect.appendChild(header);
 
-        // Speech Synthesis Voices
-        const voices = speechSynthesis.getVoices();
-        for(i = 0; i < voices.length ; i += 1) {
-            const option = document.createElement('option');
-            option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
-            option.value = "s" + `${i}:${voices[i].name}`;
-            option.text = voices[i].name;
-            try {
-                // Remap name
-                option.text = builtinLangMapping[option.text][0];
-            } catch (err) {}
-            langOutputSelect.appendChild(option);
-        }
-        speechSynthesis.onvoiceschanged = null;
+    // Speech Synthesis Voices
+    const voices = speechSynthesis.getVoices();
+    for(i = 0; i < voices.length ; i += 1) {
+        const option = document.createElement('option');
+        option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+        option.value = voiceSetMapping.voiceSetS + `${i}:${voices[i].name}`;
+        option.text = voices[i].name;
+        try {
+            // Remap name
+            option.text = builtinLangMapping[option.text][0];
+        } catch (err) {}
+        outputVoiceSelect.appendChild(option);
+    }
+    speechSynthesis.onvoiceschanged = null;
 }
 
 // Fill languages
-function gotLanguages() {
-    removeAllChildNodes(langInputSelect);
-    removeAllChildNodes(langOutputSelect);
+
+
+// Handle mobile touch not always showing dropdown
+$('.dropdown-search')
+    .dropdown({ fullTextSearch: 'exact', ignoreDiacritics: true, match: 'both' })
+    .children(':input.search')
+    .on('touchstart', (e) => {
+        if (!$(e.target.parentNode).dropdown('is visible')) {
+            $(e.target.parentNode).dropdown('show');
+            $(e.target).focus();
+            $(e.target.parentNode).dropdown({on: 'nothing'});
+        }
+        e.preventDefault();
+    });
+
+let updateLangCookies = function() {
+    vtsState.inputLangSelect = inputLangSelect.value;
+    vtsState.outputVoiceSelect = outputVoiceSelect.value;
+    vtsState.outputLangSelect = outputLangSelect.value;
+
+    setCookie(cookieKeys.inputLangSelect, vtsState.inputLangSelect);
+    setCookie(cookieKeys.outputVoiceSelect, vtsState.outputVoiceSelect);
+    setCookie(cookieKeys.outputLangSelect, vtsState.outputLangSelect);
+}
+
+function getLanguageCookiesAndUpdate() {
+    // Set default lang selections
+    inputLangSelect.value = getStringCookie(cookieKeys.inputLangSelect, defaultVtsState.inputLangSelect);
+    outputVoiceSelect.value = getStringCookie(cookieKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
+    outputLangSelect.value = getStringCookie(cookieKeys.outputLangSelect, defaultVtsState.outputLangSelect);
+
+    if (inputLangSelect.selectedIndex === -1) {
+        inputLangSelect.value = defaultVtsState.inputLangSelect;
+    }
+
+    if (outputVoiceSelect.selectedIndex === -1) {
+        outputVoiceSelect.value = defaultVtsState.outputVoiceSelect;
+    }
+
+    if (outputLangSelect.selectedIndex === -1) {
+        outputLangSelect.value = defaultVtsState.outputLangSelect;
+    }
+
+    updateLangCookies();
+
+    setInputLangSelect(inputLangSelect.value);
+    setOutputVoiceSelect(outputVoiceSelect.value);
+    setOutputLangSelect(outputLangSelect.value);
+    checkTranslationDisabled();
+
+    onOutputVoiceChange();
+}
+
+function fillLanguages() {
+    removeAllChildNodes(inputLangSelect);
+    removeAllChildNodes(outputVoiceSelect);
+    removeAllChildNodes(outputLangSelect);
 
     // Input Languages
     for (let i = 0; i < inputLangs.length; i += 1) {
         const option = document.createElement('option');
         option.value = inputLangs[i][0];
         if (inputLangs[i][1] === inputLangs[i][2]) {
-            option.text = `${inputLangs[i][1]}`;
+            option.text = inputLangs[i][1];
         } else {
             option.text = `${inputLangs[i][1]} [${inputLangs[i][2]}]`;
         }
-        langInputSelect.appendChild(option);
+        inputLangSelect.appendChild(option);
     }
 
+    // Output Languages
+    for (let i = 0; i < outputLangs.length; i += 1) {
+        const option = document.createElement('option');
+        option.value = outputLangs[i][0];
+        option.text = outputLangs[i][1];
+        outputLangSelect.appendChild(option);
+    }
+
+    // Output Voices
     addVoiceSetA();
     addVoiceSetDivider();
     addVoiceSetB();
@@ -1098,40 +1298,34 @@ function gotLanguages() {
         addVoiceSetBuiltin();
     }
 
-    // Set default lang selections
-    langInputSelect.selectedIndex = getNumericCookie('vts-langInputSelect', 45);
-    langOutputSelect.selectedIndex = getNumericCookie('vts-langOutputSelect', 24);
-    updateOutputLangOptions();
+    getLanguageCookiesAndUpdate();
 }
 
-function fillLanguages() {
-    gotLanguages(inputLangs, outputVoices);
-}
-
+const tempOutputVoiceSelect = getStringCookie(cookieKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
 fillLanguages();
-speechSynthesis.onvoiceschanged = fillLanguages;
-
-// gotLanguages(inputLangs, outputVoices);
+speechSynthesis.onvoiceschanged = function() {
+    // Update in case speech synthesis voices were selected previously
+    if (getVoiceSet(tempOutputVoiceSelect) === voiceSetMapping.voiceSetS) {
+        setCookie(cookieKeys.outputVoiceSelect, tempOutputVoiceSelect);
+    }
+    fillLanguages();
+};
 
 function getInputLang() {
-    return langInputSelect.options[langInputSelect.selectedIndex].value;
+    return vtsState.inputLangSelect === "" ? defaultVtsState.inputLangSelect : vtsState.inputLangSelect;
+}
+
+function getOutputVoice() {
+    return vtsState.outputVoiceSelect === "" ? defaultVtsState.outputVoiceSelect : vtsState.outputVoiceSelect;
 }
 
 function getOutputLang() {
-    /*
-    let outputLang = langOutputSelect.options[langOutputSelect.selectedIndex].value;
-    if (outputLang.slice(0,1) === "s") {
-        // Device Voices
-        outputLang = outputLang.slice(outputLang.search(":")+1);
-    }
-    return outputLang;
-    */
-    return langOutputSelect.options[langOutputSelect.selectedIndex].value;
+    return vtsState.outputLangSelect === "" ? defaultVtsState.outputLangSelect : vtsState.outputLangSelect;
 }
 
-function getSpeechSynthesisVoice(outputLang) {
-    outputLang = outputLang.slice(outputLang.search(":")+1);
-    return speechSynthesis.getVoices().filter(function(voice) { return voice.name == outputLang; })[0];
+function getSpeechSynthesisVoice(outputVoice) {
+    outputVoice = outputVoice.slice(outputVoice.search(":")+1);
+    return speechSynthesis.getVoices().filter(function(voice) { return voice.name == outputVoice; })[0];
 }
 
 function isSpacedLang(lang) {
@@ -1144,6 +1338,54 @@ function isSpacedLang(lang) {
     return true;
 }
 
+function matchOutputLang(translationLang, outputLang) {
+    let mappedTranslationLang = outputLangMapping[translationLang];
+    if (mappedTranslationLang !== undefined) {
+        return outputLang === mappedTranslationLang;
+    }
+
+    let shortTranslationLang = "";
+    if (translationLang.search("-") !== -1) {
+        shortTranslationLang = translationLang.slice(0, translationLang.lastIndexOf("-"));
+    }
+
+    return outputLang === shortTranslationLang || outputLang === translationLang;
+}
+
+function findMatchingOutputLang(translationLang) {
+    for (let outputLang of outputLangs) {
+        if (matchOutputLang(translationLang, outputLang[0])) {
+            return outputLang[0];
+        }
+    }
+    return null;
+}
+
+function getSeparateOutputVoice() {
+    let outputVoice = getOutputVoice();
+    let translationLang = "";
+    // const altLang = outputVoice.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
+
+    let voiceSet = getVoiceSet(outputVoice);
+    if (voiceSet === voiceSetMapping.voiceSetS) {
+        // Device Voices
+        outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
+        translationLang = outputVoice;
+    } else if (voiceSet === voiceSetMapping.voiceSetB) {
+        outputVoice = outputVoice.slice(1);
+        translationLang = outputVoice.slice(0, outputVoice.search("&"));
+    } else if (voiceSet === voiceSetMapping.voiceSetC || voiceSet === voiceSetMapping.voiceSetD || voiceSet === voiceSetMapping.voiceSetE) {
+        outputVoice = outputVoice.slice(1);
+        translationLang = outputVoice.slice(0, outputVoice.search(":"));
+        outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
+    } else {
+        outputVoice = outputVoice.slice(1);
+        translationLang = outputVoice;
+    }
+
+    return { voiceSet, outputVoice, translationLang };
+}
+
 // Set default language / dialect
 /*
 for (let i = 0; i < langs.length; i++) {
@@ -1154,7 +1396,12 @@ updateCountry();
 select_dialect.selectedIndex = 11;
 */
 
-// Utility
+// Utility helper functions
+
+function roundDecimals(value, decimals) {
+    const scale = Math.pow(10, decimals);
+    return Math.round((value + Number.EPSILON) * scale) / scale;
+}
 
 function wait(timeout) {
     return new Promise((resolve) => {
@@ -1180,64 +1427,36 @@ function reduceSpacing(str) {
 
 // Init Elements
 
-let mute = false;
-
-let volume = 100;
-let pitch = 1.0;
-let rate = 1.0;
-
 let volumeSliderActive = false;
 let pitchSliderActive = false;
 let rateSliderActive = false;
 
 function getSliderCookiesAndUpdate() {
-    volume = getNumericCookie('volume', volume);
-    $volumeSlider.slider.value = volume;
+    vtsState.volume = getNumericCookie(cookieKeys.volume, defaultVtsState.volume);
+    vtsState.rate = getNumericCookie(cookieKeys.rate, defaultVtsState.rate);
+    vtsState.pitch = getNumericCookie(cookieKeys.pitch, defaultVtsState.pitch);
 
-    rate = getNumericCookie('rate', rate);
-    $rateSlider.slider.value = rate;
-
-    pitch = getNumericCookie('pitch', pitch);
-    $pitchSlider.slider.value = pitch;
+    initSliders();
 }
 
-getSliderCookiesAndUpdate();
-
 // Used by mute button
-function toggleMute() {
-    if ($volumeMute.hasClass('up')) {
-        mute = true;
-        $volumeMute.removeClass('up');
-        $volumeMute.addClass('mute');
-        $volumeMute.parent().css('margin-left', '0px !important');
+$muteButton.click(() => {
+    vtsState.muteEnabled = !getMuteEnabled();
+    if (vtsState.muteEnabled) {
+        $muteButton.removeClass('up');
+        $muteButton.addClass('mute');
+        $muteButton.parent().css('margin-left', '0px !important');
         $volumeSlider.css('pointer-events', 'none');
         $volumeThumb.css('background-color', 'lightgray');
         $volumeFill.css('background-color', 'lightgray');
     } else {
-        mute = false;
-        $volumeMute.removeClass('mute');
-        $volumeMute.addClass('up');
+        $muteButton.removeClass('mute');
+        $muteButton.addClass('up');
         $volumeSlider.css('pointer-events', 'auto');
         $volumeThumb.css('background-color', 'white');
         $volumeFill.css('background-color', 'black');
     }
-    setCookie('vts-mute', mute);
-}
-
-$volumeSlider.slider({
-    min: 0,
-    max: 100,
-    start: volume,
-    step: 0,
-    onMove(data) {
-        volume = data.toFixed();
-        setCookie('vts-volume', volume);
-        try {
-            $volumeThumb.popup('change content', `${volume}%`).popup('reposition');
-        } catch (err) {
-            // Do nothing
-        }
-    },
+    setCookie(cookieKeys.muteEnabled, vtsState.muteEnabled);
 });
 
 // Used by volume slider on mousedown
@@ -1245,14 +1464,14 @@ function volumeSliderMousedown() {
     volumeSliderActive = true;
     $volumeThumb
         .popup('show')
-        .popup('change content', `${volume}%`)
+        .popup('change content', `${vtsState.volume}%`)
         .popup('reposition');
 }
 
 $volumeThumb.mouseenter(() => {
     $volumeThumb
         .popup('show')
-        .popup('change content', `${volume}%`)
+        .popup('change content', `${vtsState.volume}%`)
         .popup('reposition');
 });
 
@@ -1262,35 +1481,19 @@ $volumeThumb.mouseleave(() => {
     }
 });
 
-$pitchSlider.slider({
-    min: 0,
-    max: 2,
-    start: pitch,
-    step: 0.1,
-    onMove(data) {
-        pitch = data.toFixed(1);
-        setCookie('vts-pitch', pitch);
-        try {
-            $pitchThumb.popup('change content', `${pitch}`).popup('reposition');
-        } catch (err) {
-            // Do nothing
-        }
-    },
-});
-
 // Used by pitch slider on mousedown
 function pitchSliderMousedown() {
     pitchSliderActive = true;
     $pitchThumb
         .popup('show')
-        .popup('change content', `${pitch}`)
+        .popup('change content', `${vtsState.pitch}`)
         .popup('reposition');
 }
 
 $pitchThumb.mouseenter(() => {
     $pitchThumb
         .popup('show')
-        .popup('change content', `${pitch}`)
+        .popup('change content', `${vtsState.pitch}`)
         .popup('reposition');
 });
 
@@ -1300,35 +1503,19 @@ $pitchThumb.mouseleave(() => {
     }
 });
 
-$rateSlider.slider({
-    min: 0,
-    max: 2,
-    start: rate,
-    step: 0.1,
-    onMove(data) {
-        rate = data.toFixed(1);
-        setCookie('vts-rate', rate);
-        try {
-            $rateThumb.popup('change content', `${rate}`).popup('reposition');
-        } catch (err) {
-            // Do nothing
-        }
-    },
-});
-
 // Used by rate slider on mousedown
 function rateSliderMousedown() {
     rateSliderActive = true;
     $rateThumb
         .popup('show')
-        .popup('change content', `${rate}`)
+        .popup('change content', `${vtsState.rate}`)
         .popup('reposition');
 }
 
 $rateThumb.mouseenter(() => {
     $rateThumb
         .popup('show')
-        .popup('change content', `${rate}`)
+        .popup('change content', `${vtsState.rate}`)
         .popup('reposition');
 });
 
@@ -1344,125 +1531,280 @@ $(document).on('mouseup', () => {
     rateSliderActive = false;
 });
 
-// Used by invalid dropdown options onclick
-function resetDropdownInput(element) {
-    const dropdownParent = $(element)
-        .parent()
-        .parent();
-    dropdownParent.find('.search').val('');
-    dropdownParent.dropdown(
-        'set selected',
-        $('select#searchSelectOutput').dropdown('get value'),
-    );
+function initSliders() {
+    $volumeSlider.slider({
+        min: 0,
+        max: 100,
+        start: vtsState.volume,
+        step: 0,
+        onMove(data) {
+            vtsState.volume = data.toFixed();
+            setCookie(cookieKeys.volume, vtsState.volume);
+            try {
+                $volumeThumb.popup('change content', `${vtsState.volume}%`).popup('reposition');
+            } catch (err) {
+                // Do nothing
+            }
+        },
+    });
+
+    $pitchSlider.slider({
+        min: 0,
+        max: 2,
+        start: vtsState.pitch,
+        step: 0.1,
+        onMove(data) {
+            vtsState.pitch = data.toFixed(1);
+            setCookie(cookieKeys.pitch, vtsState.pitch);
+            try {
+                $pitchThumb.popup('change content', `${vtsState.pitch}`).popup('reposition');
+            } catch (err) {
+                // Do nothing
+            }
+        },
+    });
+
+    $rateSlider.slider({
+        min: 0,
+        max: 2,
+        start: vtsState.rate,
+        step: 0.1,
+        onMove(data) {
+            vtsState.rate = data.toFixed(1);
+            setCookie(cookieKeys.rate, vtsState.rate);
+            try {
+                $rateThumb.popup('change content', `${vtsState.rate}`).popup('reposition');
+            } catch (err) {
+                // Do nothing
+            }
+        },
+    });
 }
 
-function updateOutputLangOptions() {
-    const outputLang = getOutputLang();
-    const altLang = outputLang.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
-    let sLang = null;
-    if (outputLang.slice(0,1) === "s") {
-        // Device Voices
-        sLang = outputLang.slice(outputLang.search(":") + 1);
-    }
-    if (altLang !== null || sLang !== null) {
-        $('#extraVoiceOptions').removeAttr('style');
-        audioOutputText.textContent = 'Output Device'
-    } else {
-        $('#extraVoiceOptions').attr('style', 'display: none !important');
-        audioOutputText.textContent = 'Output Device'
-    }
+function getVoiceSet(outputVoice) {
+    return outputVoice.slice(0, 1);
 }
+
+function setInputLangSelect(value) {
+    $(inputLangSelect.parentNode).dropdown('set selected', value);
+}
+
+function setOutputVoiceSelect(value) {
+    $(outputVoiceSelect.parentNode).dropdown('set selected', value);
+}
+
+function setOutputLangSelect(value) {
+    $(outputLangSelect.parentNode).dropdown('set selected', value);
+}
+
+function checkOuputDeviceDisabled() {
+    if (!ranGotDevices || initOptions) {
+        return;
+    }
+
+    // Race condition with dropdown
+    setTimeout(() => {
+        let { voiceSet, outputVoice, translationLang } = getSeparateOutputVoice();
+
+        if (voiceSet === voiceSetMapping.voiceSetS) {
+            outputDeviceSelect.parentNode.classList.add('disabled');
+            outputDeviceSelect.parentNode.querySelector('.text').textContent = "Reroute browser audio"
+        } else {
+            outputDeviceSelect.parentNode.querySelector('.text').textContent = outputDeviceSelect.options[outputDeviceSelect.selectedIndex].textContent;
+            outputDeviceSelect.parentNode.classList.remove('disabled');
+        }
+    }, 0);
+}
+
+function onOutputVoiceChange() {
+    syncOutputLang();
+    let { voiceSet, outputVoice, translationLang } = getSeparateOutputVoice();
+    if (voiceSet === voiceSetMapping.voiceSetB || voiceSet === voiceSetMapping.voiceSetS) {
+        $(".options-divider").addClass('options-divider-condensed');
+        $(".row.top-padding-media").addClass('top-padding-media-condensed');
+        $extraVoiceOptions.css('display', '');
+    } else {
+        $(".options-divider").removeClass('options-divider-condensed');
+        $(".row.top-padding-media").removeClass('top-padding-media-condensed');
+        $extraVoiceOptions.css('display', 'none');
+    }
+
+    checkOuputDeviceDisabled();
+}
+
+function syncOutputLang() {
+    if (!vtsState.translateEnabled || !vtsState.syncLanguageEnabled)
+    {
+        return;
+    }
+
+    let { voiceSet, outputVoice, translationLang } = getSeparateOutputVoice();
+
+    let outputLang = findMatchingOutputLang(translationLang);
+    if (outputLang !== null) {
+        setOutputLangSelect(outputLang);
+    } else {
+        // No valid language
+        $syncLanguageErrorPopup.popup({
+            inline: true,
+            position: 'bottom center',
+            on: 'nothing'
+        });
+        $syncLanguageErrorPopup.addClass('error-text');
+        $syncLanguageErrorPopup.popup('show');
+        $syncLanguageButton.click();
+    }
+
+    updateLangCookies();
+}
+
+inputLangSelect.onchange = function() {
+    updateLangCookies();
+    restartSpeech();
+}
+
+outputVoiceSelect.onchange = function() {
+    updateLangCookies();
+    onOutputVoiceChange();
+}
+
+outputLangSelect.onchange = function() {
+    syncOutputLang();
+    updateLangCookies();
+}
+
+// Init Options Menu
 
 let initOptions = true;
 
+function checkTranslationDisabled() {
+    if (!vtsState.translateEnabled) {
+        outputLangSelect.parentNode.querySelector('.text').textContent = "Translation disabled";
+    }
+}
+
 $optionsButton.click(() => {
-    // ~console.info(getOutputLang());
+    // ~console.info(getOutputVoice());
     if (initOptions) {
+        initOptions = false;
+
         // Fix broken dropdown
         $('[data-value="divider"]').addClass('divider');
+        $('[data-value="divider"]').addClass('disabled');
         $('[data-value="divider"]').removeClass('item');
-        $('[data-value="divider"]').attr('onclick', 'resetDropdownInput(this)');
         $('[data-value="divider"]').removeAttr('data-value');
         $('[data-value="header"]').addClass('header');
+        $('[data-value="header"]').addClass('disabled');
         $('[data-value="header"]').removeClass('item');
-        $('[data-value="header"]').attr('onclick', 'resetDropdownInput(this)');
         $('[data-value="header"]').removeAttr('data-value');
-        $('.search').attr(
-            'onchange',
-            "$('.message').attr('onclick', 'resetDropdownInput(this)');",
-        );
 
         $('.dropdown-select').dropdown();
 
-        initOptions = false;
+        // Handle case where translation is initially disabled
+        syncOutputLang();
+        checkTranslationDisabled();
+        checkOuputDeviceDisabled();
+
+        // Menu setup
+        $('.pointing.menu.options-menu .item').tab();
+        $('.ui.accordion').accordion();
+
+        // Modal setup
+        $resetSettingsModal.modal({
+            autofocus: false,
+            duration: 300,
+        });
+
+        $resetReplacementsModal.modal({
+            autofocus: false,
+            duration: 300,
+        });
+
+        $resetOptionsButton.click(() => {
+            resetOptions();
+        });
+
+        $clearTranscriptModal.modal({
+            autofocus: false,
+            duration: 300,
+        });
+
+        $clearTranscriptButton.click(() => {
+            $clearTranscriptModal.modal('show');
+        });
+
+        $uiMenuModal.modal({
+            autofocus: false,
+            duration: 300,
+        });
+
+        $uiMenuButton.click(() => {
+            $uiMenuModal.modal('show');
+        });
+
+        $socketMenuModal.modal({
+            autofocus: false,
+            duration: 300,
+        });
+
+        $socketMenuButton.click(() => {
+            $socketMenuModal.modal('show');
+        });
     }
 
     // Update device names
-    navigator.mediaDevices
-        .enumerateDevices()
-        .then(gotDevices)
-        .catch(handleError);
+    setupMediaDevices();
 
-    // Modal setup
-    $('.ui.modal.options-modal').modal({
+    // Options modal setup
+    $optionsModal.modal({
         autofocus: false,
         duration: 300,
     }).modal('show');
-
-    $resetSettingsModal.modal({
-        autofocus: false,
-        duration: 300,
-    });
-
-    $resetReplacementsModal.modal({
-        autofocus: false,
-        duration: 300,
-    });
-
-    $resetOptionsButton.click(() => {
-        resetOptions();
-    });
-
-    // Menu setup
-    $('.pointing.menu.options-menu .item').tab();
 
     $('.footer-button').popup({
         inline: true,
         position: 'bottom right'
     });
 
+    $syncLanguageButton.popup({
+        inline: true,
+        position: 'left center'
+    });
+
     // Slider setup
     $volumeThumb.popup({
         position: 'top center',
-        content: `${volume}%`,
+        content: `${vtsState.volume}%`,
         on: 'manual',
     });
 
     $pitchThumb.popup({
         position: 'top center',
-        content: `${pitch}`,
+        content: `${vtsState.pitch}`,
         on: 'manual',
     });
 
     $rateThumb.popup({
         position: 'top center',
-        content: `${rate}`,
+        content: `${vtsState.rate}`,
         on: 'manual',
     });
 });
 
-/*
-function transcriptDropdown() {
-    if ($transcriptButton.prop("checked")) {
-        transcriptHeader.style.display = "block";
-        transcript.style.display = "block";
-        scrollTranscript();
-    } else {
-        transcriptHeader.style.display = "none";
-        transcript.style.display = "none";
-    }
-}
-*/
+$tabSettingsButton.click(() => {
+    $optionsContainer.css('overflow-y', '');
+    $resetOptionsButton.removeClass('disabled');
+});
+
+$tabReplacementsButton.click(() => {
+    $optionsContainer.css('overflow-y', '');
+    $resetOptionsButton.removeClass('disabled');
+});
+
+$tabAboutButton.click(() => {
+    $optionsContainer.css('overflow-y', 'scroll');
+    $resetOptionsButton.addClass('disabled');
+});
 
 $ttsInput.on('keypress', function(e) {
     const code = e.keyCode || e.which;
@@ -1471,23 +1813,58 @@ $ttsInput.on('keypress', function(e) {
     }
 });
 
+$syncLanguageButton.click(() => {
+    vtsState.syncLanguageEnabled = !getSyncLanguageEnabled();
+    setCookie(cookieKeys.syncLanguageEnabled, vtsState.syncLanguageEnabled);
+
+    if (vtsState.syncLanguageEnabled) {
+        $syncLanguageIcon.addClass('inverted');
+        $syncLanguageIconOutline.css('visibility', '');
+        outputLangSelect.parentNode.classList.add('disabled');
+    } else {
+        $syncLanguageIcon.removeClass('inverted');
+        $syncLanguageIconOutline.css('visibility', 'hidden');
+
+        if (vtsState.translateEnabled) {
+            outputLangSelect.parentNode.classList.remove('disabled');
+        }
+    }
+
+    syncOutputLang();
+    updateLangCookies();
+});
+
 $transcriptButton.click(() => {
-    if ($transcriptButton.prop('checked')) {
+    vtsState.transcriptEnabled = getTranscriptEnabled();
+    setCookie(cookieKeys.transcriptEnabled, vtsState.transcriptEnabled);
+
+    if (vtsState.transcriptEnabled) {
         transcriptHeader.style.display = 'block';
         transcript.style.display = 'block';
         scrollTranscript();
-        setCookie('vts-transcriptEnabled', true);
     } else {
         transcriptHeader.style.display = 'none';
         transcript.style.display = 'none';
-        setCookie('vts-transcriptEnabled', false);
     }
 });
 
 $socketButton.click(() => {
-    socketEnabled = $socketButton.prop('checked');
-    setCookie('vts-socketEnabled', socketEnabled);
+    vtsState.socketEnabled = getSocketEnabled();
+    setCookie(cookieKeys.socketEnabled, vtsState.socketEnabled);
 });
+
+socketAddressInput.onchange = function() {
+    vtsState.socketAddress = this.value;
+    setCookie(cookieKeys.socketAddress, vtsState.socketAddress);
+    setupSocket();
+};
+
+socketPortInput.onchange = function() {
+    this.value = Math.max(Math.min(this.value, this.max), this.min);
+    vtsState.socketPort = this.value;
+    setCookie(cookieKeys.socketPort, vtsState.socketPort);
+    setupSocket();
+};
 
 $transcriptCopy.popup({
     inline: true,
@@ -1506,9 +1883,9 @@ $transcriptDropdown.dropdown({
 
 $timestampsButton.checkbox({
     onChange: function() {
-        timestampsEnabled = $timestampsButton.checkbox('is checked');
-        setCookie('vts-timestampsEnabled', timestampsEnabled);
-        if (timestampsEnabled) {
+        vtsState.timestampsEnabled = getTimestampsEnabled();
+        setCookie(cookieKeys.timestampsEnabled, vtsState.timestampsEnabled);
+        if (vtsState.timestampsEnabled) {
             document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
         } else {
             document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "none");
@@ -1518,9 +1895,9 @@ $timestampsButton.checkbox({
 
 $translationsButton.checkbox({
     onChange: function() {
-        translationsEnabled = $translationsButton.checkbox('is checked');
-        setCookie('vts-translationsEnabled', translationsEnabled);
-        if (translationsEnabled) {
+        vtsState.translationsEnabled = getTranslationsEnabled();
+        setCookie(cookieKeys.translationsEnabled, vtsState.translationsEnabled);
+        if (vtsState.translationsEnabled) {
             document.querySelectorAll('div#transcriptTranslation').forEach(e => e.style.display = "block");
         } else {
             document.querySelectorAll('div#transcriptTranslation').forEach(e => e.style.display = "none");
@@ -1528,56 +1905,93 @@ $translationsButton.checkbox({
     }
 });
 
-$clearTranscriptButton.click(() => {
+function clearTranscript() {
+    $clearTranscriptModal.modal('hide');
+    $clearTranscriptNag.nag({
+        storageMethod: null,
+        persist: true,
+        displayTime: 2000
+    }).nag('show');
+
     while (transcript.firstChild) {
         transcript.firstChild.remove();
     }
-});
+}
 
 $ttsButton.click(() => {
-    if ($ttsButton.prop('checked')) {
+    vtsState.ttsEnabled = getTtsEnabled();
+    setCookie(cookieKeys.ttsEnabled, vtsState.ttsEnabled);
+
+    if (vtsState.ttsEnabled) {
         ttsHeader.style.display = 'block';
         ttsArea.style.display = 'block';
-        setCookie('vts-ttsEnabled', true);
     } else {
         ttsHeader.style.display = 'none';
         ttsArea.style.display = 'none';
-        setCookie('vts-ttsEnabled', false);
     }
 });
 
-$diagnosticsButton.click(() => {
-    if ($diagnosticsButton.prop('checked')) {
-        diagnostics.style.display = 'block';
-        setCookie('vts-diagnosticsEnabled', true);
+$statusButton.click(() => {
+    vtsState.statusEnabled = getStatusEnabled();
+    setCookie(cookieKeys.statusEnabled, vtsState.statusEnabled);
+
+    if (vtsState.statusEnabled) {
+        statusBar.style.display = 'block';
     } else {
-        diagnostics.style.display = 'none';
-        setCookie('vts-diagnosticsEnabled', false);
+        statusBar.style.display = 'none';
     }
 });
 
 $lowlatencyButton.click(() => {
-    lowlatencyEnabled = $lowlatencyButton.prop('checked');
-    setCookie('vts-lowlatencyEnabled', lowlatencyEnabled);
-    if (lowlatencyEnabled && $translateButton.prop('checked')) {
-        $translateButton.click();
+    vtsState.lowlatencyEnabled = getLowlatencyEnabled();
+    setCookie(cookieKeys.lowlatencyEnabled, vtsState.lowlatencyEnabled);
+
+    if (vtsState.lowlatencyEnabled) {
+        $latencyContainer.removeClass("disabled");
+    } else {
+        $latencyContainer.addClass("disabled");
     }
+
+    // if (vtsState.lowlatencyEnabled && vtsState.translateEnabled) {
+    //     $translateButton.click();
+    // }
+
     if (buttonState === 1) {
         restartSpeech();
     }
 });
 
+latencyInput.onchange = function() {
+    this.value = Math.max(Math.min(this.value, this.max), this.min);
+    vtsState.latency = this.value;
+    setCookie(cookieKeys.latency, vtsState.latency);
+};
+
 $translateButton.click(() => {
-    translateEnabled = $translateButton.prop('checked');
-    setCookie('vts-translateEnabled', translateEnabled);
-    if ($translateButton.prop('checked')) {
-        if ($lowlatencyButton.prop('checked')) {
-            $lowlatencyButton.click();
+    vtsState.translateEnabled = getTranslateEnabled();
+    setCookie(cookieKeys.translateEnabled, vtsState.translateEnabled);
+
+    if (vtsState.translateEnabled) {
+        // if (vtsState.lowlatencyEnabled) {
+        //     $lowlatencyButton.click();
+        // }
+        outputLangSelect.parentNode.querySelector('.text').textContent = outputLangSelect.options[outputLangSelect.selectedIndex].textContent;
+        if (!vtsState.syncLanguageEnabled) {
+            outputLangSelect.parentNode.classList.remove('disabled');
+        } else {
+            syncOutputLang();
         }
-        outputVoiceText.textContent = 'Output Language';
+        $speakInputButton.prop('disabled', false);
     } else {
-        outputVoiceText.textContent = 'Output Voice';
+        outputLangSelect.parentNode.querySelector('.text').textContent = "Translation disabled"
+        outputLangSelect.parentNode.classList.add('disabled');
+        $speakInputButton.prop('disabled', true);
     }
+});
+
+$speakInputButton.click(() => {
+    vtsState.speakInputEnabled = getSpeakInputEnabled();
+    setCookie(cookieKeys.speakInputEnabled, vtsState.speakInputEnabled);
 });
 
 // Replacements Table
@@ -1590,23 +2004,21 @@ let draggingRowIndex;
 let replacementsPlaceholder;
 let replacementsTableClone;
 let replacementsBodyClone;
-let isDraggingStarted = false;
+let isDraggingStart = true;
 const cellBorderWidth = '1px';
 
 // The current position of mouse relative to the dragging element
 let replacementsX = 0;
 let replacementsY = 0;
 
-// Swap two nodes
-function swapNodes(nodeA, nodeB) {
-    const parentA = nodeA.parentNode;
-    const siblingA = nodeA.nextSibling === nodeB ? nodeA : nodeA.nextSibling;
-
-    // Move `nodeA` to before the `nodeB`
+// Move `nodeA` to before the `nodeB`
+function moveNodeBefore(nodeA, nodeB) {
     nodeB.parentNode.insertBefore(nodeA, nodeB);
+}
 
-    // Move `nodeB` to before the sibling of `nodeA`
-    parentA.insertBefore(nodeB, siblingA);
+// Move `nodeA` to after the `nodeB`
+function moveNodeAfter(nodeA, nodeB) {
+    nodeB.parentNode.insertBefore(nodeA, nodeB.nextSibling);
 }
 
 // Check if `nodeA` is above `nodeB`
@@ -1615,7 +2027,7 @@ function isNodeAbove(nodeA, nodeB) {
     const rectA = nodeA.getBoundingClientRect();
     const rectB = nodeB.getBoundingClientRect();
 
-    return rectA.top < rectB.top + rectB.height / 2;
+    return rectA.top < rectB.top + rectB.height * 0.45;
 }
 
 function addDraggableRecursive(node) {
@@ -1631,39 +2043,54 @@ function addDraggableRecursive(node) {
 function cloneTable() {
     const rect = $replacementsTable.getBoundingClientRect();
 
+    const rowStyles = [];
+    for (const refRow of $replacementEntries.querySelectorAll('tr')) {
+        const cellStyles = [];
+        for (const cell of refRow.children) {
+            cellStyles.push(window.getComputedStyle(cell));
+        }
+
+        const rowStyle = {
+            style: window.getComputedStyle(refRow),
+            cellStyles: cellStyles 
+        }
+
+        rowStyles.push(rowStyle);
+    }
+
+    const scroll = $replacementEntries.scrollTop;
+
     replacementsTableClone = $replacementsTableClone.cloneNode(true);
     replacementsBodyClone = replacementsTableClone.querySelector('tbody');
     $replacementsTable.parentNode.insertBefore(replacementsTableClone, $replacementsTable);
 
-    // Hide the original table
-    $replacementsTable.style.visibility = 'hidden';
+    replacementsTableClone.style.display = 'none';
 
-    $replacementEntries.querySelectorAll('tr').forEach(function (row) {
+    $replacementEntries.querySelectorAll('tr').forEach(function (row, rowIndex) {
         // Create a new table from given row
         const item = document.createElement('div');
 
-        const rowComputedStyle = window.getComputedStyle(row);
-
-        const width = parseFloat(rowComputedStyle.width);
-        const height = parseFloat(rowComputedStyle.height);
-
         const newTable = $replacementsTableCloneRowContainer.cloneNode(true);
-        newTable.style.width = `${width}px`;
-        newTable.style.height = `${height}px`;
+
+        const rowStyle = rowStyles[rowIndex];
+        newTable.style.width = rowStyle.style.width;
+        newTable.style.height = rowStyle.style.height;
 
         const newRow = row.cloneNode(true);
         newTable.appendChild(newRow);
 
-        for (let i = 0; i < newRow.children.length; i++) {
-            const cell = newRow.children[i];
+        for (let cellIndex = 0; cellIndex < newRow.children.length; cellIndex++) {
+            const cell = newRow.children[cellIndex];
             addDraggableRecursive(cell);
+
+            const cellStyle = rowStyle.cellStyles[cellIndex];
             cell.style.borderColor = 'rgba(34, 36, 38, 0.1)';
             cell.style.borderTopStyle = 'solid';
             cell.style.borderBottomStyle = 'solid';
-            cell.style.borderTopWidth = `${parseFloat(window.getComputedStyle(row.children[i]).borderTopWidth)}px`;
+            cell.style.borderTopWidth = cellStyle.borderTopWidth;
             cell.style.borderBottomWidth = '0px';
-            cell.style.maxWidth = `${parseFloat(window.getComputedStyle(row.children[i]).width)}px`;
-            cell.style.maxHeight = `${parseFloat(window.getComputedStyle(row.children[i]).height)}px`;
+            cell.style.maxWidth = cellStyle.width;
+            cell.style.maxHeight = cellStyle.height;
 
             const dropdown = cell.querySelector('.replacement-dropdown');
             if (dropdown !== null) {
@@ -1675,7 +2102,10 @@ function cloneTable() {
         replacementsBodyClone.appendChild(newTable);
     });
 
-    const scroll = $replacementEntries.scrollTop;
+    // Hide the original table
+    $replacementsTable.style.display = 'none';
+    replacementsTableClone.style.display = 'table';
+
     replacementsBodyClone.scroll(0, scroll);
 }
 
@@ -1685,21 +2115,23 @@ const replacementsTableMouseDownHandler = function (e) {
     draggingRowIndex = [].slice.call($replacementEntries.querySelectorAll('tr')).indexOf(originalRow);
 
     // Determine the mouse position
-    replacementsX = e.clientX;
-    replacementsY = e.clientY;
+    replacementsX = e.clientX ? e.clientX : e.pageX;
+    replacementsY = e.clientY ? e.clientY : e.pageY;
 
     $('.replacement-dropdown.active').dropdown({
         duration: 0
     }).dropdown('hide');
 
-    // Attach the listeners to `document`
+    // Attach the listeners
+    document.addEventListener('touchmove', replacementsTableMouseMoveHandler);
+    document.addEventListener('touchend', replacementsTableMouseUpHandler);
     document.addEventListener('mousemove', replacementsTableMouseMoveHandler);
     document.addEventListener('mouseup', replacementsTableMouseUpHandler);
 };
 
-const replacementsTableMouseMoveHandler = function (e) {
-    if (!isDraggingStarted) {
-        isDraggingStarted = true;
+const replacementsTableMouseMoveHandler = async function (e) {
+    if (isDraggingStart) {
+        isDraggingStart = false;
 
         cloneTable();
 
@@ -1711,16 +2143,17 @@ const replacementsTableMouseMoveHandler = function (e) {
         // Let the placeholder take the height of dragging element
         // So the next element won't move up
         replacementsPlaceholder = document.createElement('div');
-        replacementsPlaceholder.classList.add('replacementsPlaceholder');
+        replacementsPlaceholder.classList.add('replacements-placeholder');
         draggingEle.parentNode.insertBefore(replacementsPlaceholder, draggingEle.nextSibling);
         replacementsPlaceholder.style.height = `${parseFloat(window.getComputedStyle(draggingEle).height)}px`;
-        if (draggingRowIndex > 0) {
-            replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
-            replacementsPlaceholder.style.borderTopStyle = 'solid';
-            replacementsPlaceholder.style.borderTopWidth = draggingEle.style.borderTopWidth;
-        }
+        replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
+        replacementsPlaceholder.style.borderTopStyle = 'solid';
+        replacementsPlaceholder.style.borderTopWidth = draggingEle.style.borderTopWidth;
+        replacementsPlaceholder.style.borderBottomStyle = 'solid';
+        replacementsPlaceholder.style.borderBottomWidth = draggingEle.style.borderTopWidth;
         draggingEle.style.position = 'absolute';
         draggingEle.style.top = `${draggingEle.offsetTop - replacementsPlaceholder.parentNode.scrollTop}px`;
+        draggingEle.style.width = `${parseFloat(draggingEle.style.width) + parseFloat(cellBorderWidth) * 2}px`;
 
         const cells = draggingEle.querySelector('tr').children;
         for (let i = 0; i < cells.length; i++) {
@@ -1731,86 +2164,112 @@ const replacementsTableMouseMoveHandler = function (e) {
 
         cells[0].style.borderLeftStyle = 'solid';
         cells[0].style.borderLeftWidth = cellBorderWidth;
-        cells[0].style.width = `${parseFloat(cells[0].width) + parseFloat(cellBorderWidth)}px`;
+        cells[0].style.width = `${parseFloat(cells[0].style.maxWidth) + parseFloat(cellBorderWidth)}px`;
 
         cells[cells.length - 1].style.borderRightStyle = 'solid';
         cells[cells.length - 1].style.borderRightWidth = cellBorderWidth;
-        cells[cells.length - 1].style.width = `${parseFloat(cells[0].width) + parseFloat(cellBorderWidth)}px`;
+        cells[cells.length - 1].style.width = `${parseFloat(cells[0].style.maxWidth) + parseFloat(cellBorderWidth)}px`;
     }
 
     // Get position for dragging element
     const draggingOffsetTop = draggingEle.offsetTop;
     const draggingOffsetLeft = draggingEle.offsetLeft;
 
-    // The current order
+    const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
+
+    // Get which row element to move to
+
+    // Current order
     // prevEle
+    // ...
     // draggingEle
     // replacementsPlaceholder
+    // ...
     // nextEle
-    const prevEle = draggingEle.previousElementSibling;
-    const nextEle = replacementsPlaceholder.nextElementSibling;
-    const prevEleHeight = window.getComputedStyle(prevEle).height;
-    const nextEleHeight = window.getComputedStyle(nextEle).height;
-    const abovePrevEle = prevEle ? isNodeAbove(draggingEle, prevEle) : false;
-    const belowNextEle = nextEle ? isNodeAbove(nextEle, draggingEle) : false;
+    let prevEle = draggingEle.previousElementSibling;
+    let abovePrevEle = prevEle ? isNodeAbove(draggingEle, prevEle) : false;
+    while (prevEle && abovePrevEle) {
+        let tempPrevEle = prevEle;
+        prevEle = prevEle.previousElementSibling;
+        abovePrevEle = prevEle ? isNodeAbove(draggingEle, prevEle) : false;
+        if (!abovePrevEle) {
+            prevEle = tempPrevEle;
+            abovePrevEle = true;
+            break;
+        }
+    }
+    let prevEleHeight = prevEle ? window.getComputedStyle(prevEle).height : undefined;
 
+    let nextEle = replacementsPlaceholder.nextElementSibling;
+    let belowNextEle = nextEle ? isNodeAbove(nextEle, draggingEle) : false;
+    while (nextEle && belowNextEle) {
+        let tempNextEle = nextEle;
+        nextEle = nextEle.nextElementSibling;
+        belowNextEle = nextEle ? isNodeAbove(nextEle, draggingEle) : false;
+        if (!belowNextEle) {
+            nextEle = tempNextEle;
+            belowNextEle = true;
+            break;
+        }
+    }
+    let nextEleHeight = nextEle ? window.getComputedStyle(nextEle).height : undefined;
+
+    // Set position for dragging element
+    const mouseX = e.clientX ? e.clientX : e.pageX;
+    const mouseY = e.clientY ? e.clientY : e.pageY;
+    draggingEle.style.left = `${draggingOffsetLeft + mouseX - replacementsX}px`;
+    draggingEle.style.top = `${draggingOffsetTop + mouseY - replacementsY}px`;
+
+    // Reassign the position of mouse
+    replacementsX = mouseX;
+    replacementsY = mouseY;
+
+    // Reposition row elements
     if (prevEle && abovePrevEle) {
         // The dragging element is above the previous element
         // User moves the dragging element to the top
 
-        // The current order    -> The new order
-        // prevEle              -> replacementsPlaceholder
-        // draggingEle          -> draggingEle
-        // replacementsPlaceholder          -> prevEle
-        swapNodes(replacementsPlaceholder, draggingEle);
-        swapNodes(replacementsPlaceholder, prevEle);
-        if (Array.prototype.indexOf.call(replacementsPlaceholder.parentNode.children, replacementsPlaceholder) === 0) {
-            const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
-            replacementsPlaceholder.style.height = prevEleheight;
+        // Current order           -> New order
+        // prevEle                 -> draggingEle
+        // ...                     -> replacementsPlaceholder
+        // draggingEle             -> prevEle
+        // replacementsPlaceholder -> ...
+        moveNodeBefore(replacementsPlaceholder, prevEle);
+        moveNodeBefore(draggingEle, replacementsPlaceholder);
+
+        // Adjust height and style if first two row elements changed
+        if (Array.prototype.indexOf.call(replacementsPlaceholder.parentNode.children, replacementsPlaceholder) === 1) {
+            replacementsPlaceholder.style.height = prevEleHeight;
 
             prevEle.style.height = replacementsPlaceholderHeight;
             for (let cell of prevEle.querySelector('tr').children) {
                 cell.style.borderTopWidth = cellBorderWidth;
                 cell.style.height = replacementsPlaceholderHeight;
             }
-
-            replacementsPlaceholder.style.borderTopWidth = '0px';
         }
-        return;
     } else if (nextEle && belowNextEle) {
         // The dragging element is below the next element
         // User moves the dragging element to the bottom
 
-        // The current order       -> The new order
-        // draggingEle             -> nextEle
-        // replacementsPlaceholder -> replacementsPlaceholder
-        // nextEle                 -> draggingEle
-        swapNodes(nextEle, replacementsPlaceholder);
-        swapNodes(nextEle, draggingEle);
-        if (Array.prototype.indexOf.call(nextEle.parentNode.children, nextEle) === 0) {
-            const replacementsPlaceholderHeight = replacementsPlaceholder.style.height;
-
-            replacementsPlaceholder.style.borderColor = 'rgba(34, 36, 38, 0.1)';
-            replacementsPlaceholder.style.borderTopStyle = 'solid';
-            replacementsPlaceholder.style.borderTopWidth = cellBorderWidth;
+        // Adjust height and style if first two row elements changed
+        if (Array.prototype.indexOf.call(replacementsPlaceholder.parentNode.children, replacementsPlaceholder) === 1) {
             replacementsPlaceholder.style.height = nextEleHeight;
 
-            nextEle.style.height = replacementsPlaceholderHeight;
-            for (let cell of nextEle.querySelector('tr').children) {
+            replacementsPlaceholder.nextElementSibling.style.height = replacementsPlaceholderHeight;
+            for (let cell of replacementsPlaceholder.nextElementSibling.querySelector('tr').children) {
                 cell.style.borderTopWidth = '0px';
                 cell.style.height = replacementsPlaceholderHeight;
             }
         }
+
+        // Current order           -> New order
+        // draggingEle             -> ...
+        // replacementsPlaceholder -> nextEle
+        // ...                     -> draggingEle
+        // nextEle                 -> replacementsPlaceholder
+        moveNodeAfter(replacementsPlaceholder, nextEle);
+        moveNodeBefore(draggingEle, replacementsPlaceholder);
     }
-
-    // Set position for dragging element
-    draggingEle.style.top = `${draggingOffsetTop + e.clientY - replacementsY}px`;
-    draggingEle.style.left = `${draggingOffsetLeft + e.clientX - replacementsX}px`;
-    console.log(draggingEle.style.left);
-
-    // Reassign the position of mouse
-    replacementsX = e.clientX;
-    replacementsY = e.clientY;
 };
 
 const replacementsTableMouseUpHandler = function() {
@@ -1831,34 +2290,34 @@ const replacementsTableMouseUpHandler = function() {
     // Get the end index
     const endRowIndex = [].slice.call(replacementsBodyClone.children).indexOf(draggingEle);
 
-    isDraggingStarted = false;
+    isDraggingStart = true;
 
     // Move the dragged row to `endRowIndex`
     let rows = [].slice.call($replacementEntries.querySelectorAll('tr'));
     draggingRowIndex > endRowIndex
         ? rows[endRowIndex].parentNode.insertBefore(rows[draggingRowIndex], rows[endRowIndex])
-        : rows[endRowIndex].parentNode.insertBefore(
-              rows[draggingRowIndex],
-              rows[endRowIndex].nextSibling
-          );
+        : rows[endRowIndex].parentNode.insertBefore(rows[draggingRowIndex], rows[endRowIndex].nextSibling);
 
     const scroll = replacementsBodyClone.scrollTop;
-    $replacementEntries.scroll(0, scroll);
 
     // Remove the `list` element
     replacementsTableClone.parentNode.removeChild(replacementsTableClone);
 
     // Bring back the table
     updateReplacementsList();
-    $replacementsTable.style.removeProperty('visibility');
+    $replacementsTable.style.display = "table";
+    $replacementEntries.scroll(0, scroll);
 
-    // Remove the handlers of `mousemove` and `mouseup`
+    // Remove event handlers
+    document.removeEventListener('touchmove', replacementsTableMouseMoveHandler);
+    document.removeEventListener('touchend', replacementsTableMouseUpHandler);
     document.removeEventListener('mousemove', replacementsTableMouseMoveHandler);
     document.removeEventListener('mouseup', replacementsTableMouseUpHandler);
 };
 
 $replacementEntries.querySelectorAll('tr').forEach(function (row, index) {
     const firstCell = row.firstElementChild;
+    firstCell.querySelector('i').addEventListener('touchstart', replacementsTableMouseDownHandler);
     firstCell.querySelector('i').addEventListener('mousedown', replacementsTableMouseDownHandler);
 });
 
@@ -1887,7 +2346,8 @@ const defaultReplacementsList = [
     ["neutral face", "😐"],
     ["sad face", "🙁"],
     ["angry face", "😠"],
-    ["gasping face", "😮"],
+    ["pensive face", "😔"],
+    ["surprised face", "😮"],
     ["melting face", "🫠"]
 ]
 
@@ -1896,7 +2356,7 @@ let replacementsList = [];
 resetReplacementsList();
 
 function resetReplacementsList() {
-    let replacementsListCookie = getStringCookie('vts-replacements', '');
+    let replacementsListCookie = getStringCookie(cookieKeys.replacements, '');
     if (replacementsListCookie === "") {
         replacementsList = JSON.parse(JSON.stringify(defaultReplacementsList));   
     } else {
@@ -2021,7 +2481,12 @@ function updateReplacementsList() {
 
         replacementsList.push(entry);
     }
-    setCookie('vts-replacements', JSON.stringify(replacementsList));
+    setCookie(cookieKeys.replacements, JSON.stringify(replacementsList));
+}
+
+function showReplacementDropdownMenuTouch(dropdown) {
+    dropdown.onclick = null;
+    showReplacementDropdownMenu(dropdown);
 }
 
 function showReplacementDropdownMenu(dropdown) {
@@ -2080,6 +2545,7 @@ function addReplacementEntry(phrase, replacement, options) {
     }
 
     $replacementEntries.appendChild(newTableEntry);
+    newTableEntry.firstElementChild.querySelector('i').addEventListener('touchstart', replacementsTableMouseDownHandler);
     newTableEntry.firstElementChild.querySelector('i').addEventListener('mousedown', replacementsTableMouseDownHandler);
 
     $('.new-replacement-dropdown').dropdown({
@@ -2140,17 +2606,16 @@ function getTranscriptTime() {
     return timestamp;
 }
 
-function appendTranscript(text, untranslatedText, inputLang, translationLang, link) {
+function appendTranscript(text, untranslatedText, inputLang, outputLang, link) {
     // allow 1px inaccuracy by adding 1
-    const isScrolledToBottom = transcript.scrollHeight - transcript.clientHeight
-        <= transcript.scrollTop + 1;
+    const isScrolledToBottom = transcript.scrollHeight - transcript.clientHeight <= transcript.scrollTop + 1;
 
     // Transcript
     const transcriptTime = document.createElement('div');
     transcriptTime.setAttribute('id', 'transcriptTime');
     transcriptTime.setAttribute('class', 'transcript-time');
     transcriptTime.textContent = `${getTranscriptTime()} `;
-    if (!timestampsEnabled) {
+    if (!vtsState.timestampsEnabled) {
         transcriptTime.style.display = 'none';
     }
 
@@ -2183,12 +2648,13 @@ function appendTranscript(text, untranslatedText, inputLang, translationLang, li
     transcriptContainer.appendChild(transcriptPlay);
 
     // Translation
-    const translated = inputLang !== translationLang && translateEnabled;
+    inputLang = findMatchingOutputLang(inputLang);
+    const translated = inputLang !== outputLang && vtsState.translateEnabled;
     const transcriptTranslation = document.createElement('div');
-    if (translated) {
+    if (translated && untranslatedText !== "") {
         const transcriptTranslationInfo = document.createElement('div');
         transcriptTranslationInfo.setAttribute('class', 'transcript-translation-info');
-        transcriptTranslationInfo.textContent = `${inputLang}|${translationLang} `;
+        transcriptTranslationInfo.textContent = `${inputLang}|${outputLang} `;
 
         const transcriptUntranslatedText = document.createElement('div');
         transcriptUntranslatedText.setAttribute('class', 'transcript-untranslated-text');
@@ -2197,7 +2663,7 @@ function appendTranscript(text, untranslatedText, inputLang, translationLang, li
         transcriptTranslation.setAttribute('id', 'transcriptTranslation');
         transcriptTranslation.appendChild(transcriptTranslationInfo);
         transcriptTranslation.appendChild(transcriptUntranslatedText);
-        if (!translationsEnabled) {
+        if (!vtsState.translationsEnabled) {
             transcriptTranslation.style.display = 'none';
         }
     }
@@ -2345,19 +2811,42 @@ test();
 
 // Fill devices
 
+function getOuputDeviceCookieAndUpdate() {
+    if (!ranGotDevices) {
+        return;
+    }
+
+    let found = false;
+    vtsState.outputDeviceSelect = getStringCookie(cookieKeys.outputDeviceSelect, defaultVtsState.outputDeviceSelect);
+    for (let option of outputDeviceSelect.options) {
+        if (option.value == vtsState.outputDeviceSelect) {
+            outputDeviceSelect.value = vtsState.outputDeviceSelect;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        vtsState.outputDeviceSelect = 'default';
+        outputDeviceSelect.value = vtsState.outputDeviceSelect;
+    }
+
+    changeAudioDestination();
+}
+
 function gotDevices(deviceInfos) {
     // Handles being called several times to update labels. Preserve values.
-    const values = selectors.map(select => select.value);
-    selectors.forEach((select) => {
-        while (select.firstChild) {
-            select.removeChild(select.firstChild);
+    const values = deviceSelectors.map(deviceSelector => deviceSelector.value);
+    deviceSelectors.forEach((deviceSelector) => {
+        while (deviceSelector.firstChild) {
+            deviceSelector.removeChild(deviceSelector.firstChild);
         }
     });
 
-    if (audioInputSelectionDisabled) {
+    if (inputDeviceSelectionDisabled) {
         const option = document.createElement('option');
         option.text = 'Set in browser';
-        audioInputSelect.appendChild(option);
+        inputDeviceSelect.appendChild(option);
     }
 
     for (let i = 0; i !== deviceInfos.length; ++i) {
@@ -2365,19 +2854,19 @@ function gotDevices(deviceInfos) {
         const option = document.createElement('option');
         option.value = deviceInfo.deviceId;
         if (deviceInfo.kind === 'audioinput') {
-            if (!audioInputSelectionDisabled) {
-                option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
-                audioInputSelect.appendChild(option);
+            if (!inputDeviceSelectionDisabled) {
+                option.text = deviceInfo.label || `microphone ${inputDeviceSelect.length + 1}`;
+                inputDeviceSelect.appendChild(option);
             }
         } else if (deviceInfo.kind === 'audiooutput') {
-            option.text = deviceInfo.label || `speaker ${audioOutputSelect.length + 1}`;
-            audioOutputSelect.appendChild(option);
+            option.text = deviceInfo.label || `speaker ${outputDeviceSelect.length + 1}`;
+            outputDeviceSelect.appendChild(option);
         } else {
             // console.info('Some other kind of source/device: ', deviceInfo);
         }
     }
 
-    selectors.forEach((select, selectorIndex) => {
+    deviceSelectors.forEach((select, selectorIndex) => {
         if (
             Array.prototype.slice
                 .call(select.childNodes)
@@ -2387,27 +2876,19 @@ function gotDevices(deviceInfos) {
         }
     });
 
-    let found = false;
-    let audioOutputSelectValue = getStringCookie('vts-audioOutputSelect', audioOutputSelect.value);
-    for (let option of audioOutputSelect.options) {
-        if (option.value == audioOutputSelectValue) {
-            audioOutputSelect.value = audioOutputSelectValue;
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-        audioOutputSelect.value = 'default';
-    }
-
-    changeAudioDestination();
+    ranGotDevices = true;
+    getOuputDeviceCookieAndUpdate();
 }
 
-let audioDestination;
 function changeAudioDestination() {
-    audioDestination = audioOutputSelect.value;
-    setCookie('vts-audioOutputSelect', audioOutputSelect.value);
+    vtsState.outputDeviceSelect = outputDeviceSelect.value;
+    audioDestination = vtsState.outputDeviceSelect;
+    setCookie(cookieKeys.outputDeviceSelect, vtsState.outputDeviceSelect);
+    checkOuputDeviceDisabled();
+}
+
+outputDeviceSelect.onchange = function() {
+    changeAudioDestination();
 }
 
 /*
@@ -2424,18 +2905,19 @@ function handleError(error) {
         error.message,
         error.name,
     );
+    gotDevices([]);
 }
 
 /*
-function startAudioInput() {
+function startInputDevice() {
     if (window.stream) {
         window.stream.getTracks().forEach(track => {
             track.stop();
         });
     }
-    const audioSource = audioInputSelect.value;
+    const inputDevice = inputDeviceSelect.value;
     const constraints = {
-        audio: {deviceId: audioSource ? {exact: audioSource} : undefined}
+        audio: {deviceId: inputDevice ? {exact: inputDevice} : undefined}
     };
     navigator.mediaDevices
         .getUserMedia(constraints)
@@ -2444,52 +2926,44 @@ function startAudioInput() {
         .catch(handleError);
 }
 
-//audioInputSelect.onchange = startAudioInput;
-audioInputSelect.onchange = function() {
+//inputDeviceSelect.onchange = startInputDevice;
+inputDeviceSelect.onchange = function() {
     if (buttonState === 1) {
         testSpeech();
     }
 }
 */
 
-navigator.mediaDevices
-    .enumerateDevices()
-    .then(gotDevices)
-    .catch(handleError);
+async function setupMediaDevices() {
+    if (navigator.mediaDevices === undefined) {
+        gotDevices([]);
+        return;
+    }
 
-let updateLangCookies = function() {
-    setCookie('vts-langInputSelect', langInputSelect.selectedIndex);
-    setCookie('vts-langOutputSelect', langOutputSelect.selectedIndex);
+    try {
+        navigator.mediaDevices
+            .enumerateDevices()
+            .then(gotDevices)
+            .catch(handleError);  
+    } catch (err) {}
 }
 
+setupMediaDevices();
+
 let restartSpeech = function() {
+    // TODO: Figure out looping error on Safari
+    // setTimeout(() => {
+    //     if (buttonState === 1) {
+    //         recognition.stop();
+    //         testSpeech();
+    //     }
+    // }, 3000);
+
     if (buttonState === 1) {
         recognition = new SpeechRecognition();
         testSpeech();
     }
 }
-
-$('.dropdown-search').dropdown({ fullTextSearch: 'exact' });
-
-audioOutputSelect.onchange = function() {
-    changeAudioDestination();
-}
-
-langInputSelect.onchange = function() {
-    updateLangCookies();
-    restartSpeech();
-}
-
-langOutputSelect.onchange = function() {
-    updateLangCookies();
-    updateOutputLangOptions();
-}
-
-//
-
-let speechPlaying = false;
-let speechBuffer = [];
-let timeoutTimes = 0;
 
 // Used by transcript play button
 async function playTranscriptAudio(elem, audioURL, stop = false) {
@@ -2497,7 +2971,7 @@ async function playTranscriptAudio(elem, audioURL, stop = false) {
         return;
     }
 
-    if (!mute) {
+    if (!vtsState.muteEnabled) {
         const element = $(elem);
         if (element.children('i').hasClass('play')) {
             speechPlaying = false;
@@ -2544,12 +3018,38 @@ function sendJsonRequest(method, url, jsonPayload) {
                 statusText: xhr.statusText
             });
         };
+        xhr.onreadystatechange = function(e) {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                const status = xhr.status;
+                if (status === 0 || (status >= 200 && status < 400)) {
+                    // The request has been completed successfully
+                } else {
+                    console.error(`Response: ${xhr.responseText}`);
+                    const errorMsg = "Failed to get audio. Try another output voice or language.";
+                    console.error(errorMsg);
+                    updateOutputStatus(errorMsg);
+                }
+            }
+        }
         xhr.send(JSON.stringify(jsonPayload));
     });
 }
 
+function splitArgsFromEnd(text, match, count) {
+    let args = text.split(match);
+    let finalArgs = [];
+    for (let i = 1; i <= count; i++) {
+        if (i < count) {
+            finalArgs.unshift(args[args.length - i]);   
+        } else {
+            finalArgs.unshift(args.slice(0, args.length - i + 1).join(match))
+        }
+    }
+    return finalArgs;
+}
+
 async function playAudio(audioURL, stop, fromTranscript) {
-    if (audioURL === "" || mute) {
+    if (audioURL === "" || vtsState.muteEnabled) {
         return;
     }
 
@@ -2571,9 +3071,9 @@ async function playAudio(audioURL, stop, fromTranscript) {
         }
 
         let msg = new SpeechSynthesisUtterance();
-        const args = audioURL.slice(audioURL.search(":") + 1).split("|");
+        const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 4);
         msg.text = args[0];
-        msg.volume = volume / 100;
+        msg.volume = vtsState.volume / 100;
         msg.rate = Math.pow(10, args[1] - 1);
         msg.pitch = args[2];
         msg.voice = getSpeechSynthesisVoice(args[3]);
@@ -2582,7 +3082,7 @@ async function playAudio(audioURL, stop, fromTranscript) {
     }
 
     if (audioURL.startsWith('tt:')) {
-        const args = audioURL.slice(audioURL.search(":") + 1).split("|");
+        const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 2);
         const jsonPayload = {
             text: args[0],
             voice: args[1]
@@ -2598,7 +3098,7 @@ async function playAudio(audioURL, stop, fromTranscript) {
     try {
         audio.setSinkId(audioDestination);
     } catch(err) {}
-    audio.volume = volume / 100.0;
+    audio.volume = vtsState.volume / 100.0;
     speechPlaying = true;
     audio.onended = function onended() {
         speechPlaying = false;
@@ -2611,6 +3111,9 @@ async function playAudio(audioURL, stop, fromTranscript) {
             // Do nothing
         }
     };
+
+    // audio.preservesPitch = false;
+    // audio.playbackRate = 1;
     audio.play().then(() => {
             // ~console.info("response");
             timeoutTimes = 0;
@@ -2621,9 +3124,14 @@ async function playAudio(audioURL, stop, fromTranscript) {
             console.error(err);
             timeoutTimes += 1;
             if (timeoutTimes > 3) {
+                const errorMsg = "Voice may not be available. Try another output voice.";
+                console.error(errorMsg);
+                updateOutputStatus(errorMsg);
                 timeoutTimes = 0;
             } else {
-                console.info(`Failed to play audio, trying again. Current attempt: ${timeoutTimes}`);
+                const errorMsg = `Failed to play audio, trying again. Current attempt: ${timeoutTimes}`;
+                console.error(errorMsg);
+                updateOutputStatus(errorMsg);
                 setTimeout(() => {
                     playAudio(audioURL, false, false);
                 }, 500);
@@ -2639,133 +3147,108 @@ async function playTTSInput() {
     }
 }
 
-async function playTTS(speech, ttsEnabled, interimAddition = false, padSpacing = true) {
+async function playTTS(speech, useTts, interimAddition = false, padSpacing = true) {
     // Update device names
-    await navigator.mediaDevices
-        .enumerateDevices()
-        .then(gotDevices)
-        .catch(handleError);
+    await setupMediaDevices();
 
-    // ~console.info("playTTS");
-    if (speech.length === 0 || (buttonState !== 1 && ttsEnabled == false)) {
+    if (speech.length === 0 || (buttonState !== 1 && useTts == false)) {
         return;
     }
+
     try {
-        // ~console.info("try playTTS");
         const inputLang = getInputLang();
         let outputLang = getOutputLang();
-        let translationLang = null;
-        // const altLang = outputLang.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
 
-        let voiceSet = outputLang.slice(0,1);
-        if (voiceSet === "s") {
-            // Device Voices
-            outputLang = outputLang.slice(outputLang.search(":") + 1);
-            translationLang = outputLang;
-        } else if (voiceSet === "b") {
-            outputLang = outputLang.slice(1);
-            translationLang = outputLang.slice(0, outputLang.search("&"));
-        } else if (voiceSet === "c" || voiceSet === "d" || voiceSet === "e") {
-            outputLang = outputLang.slice(1);
-            translationLang = outputLang.slice(0, outputLang.search(":"));
-            outputLang = outputLang.slice(outputLang.search(":") + 1);
-        } else {
-            outputLang = outputLang.slice(1);
-            translationLang = outputLang;
-        }
-        
-        let untranslatedSpeechText = speech.filter(el => el).join(' ');
-        if (translateEnabled) {
-            let translateSuccess = false;
-            // if (altLang !== null) {
-            //     // Don't translate if same language
-            //     if (inputLang !== altLang[0]) {
-            //         speech = await getTranslation(
-            //             inputLang,
-            //             altLang[0],
-            //             speech.join(' '),
-            //         );
-            //         translateSuccess = true;
-            //     }
-            // }
-            if (translationLang !== null && inputLang !== translationLang) {
-                // Don't translate if same language
-                speech = await getTranslation(
-                    inputLang,
-                    translationLang,
-                    speech.join(' '),
-                );
-                translateSuccess = true;
-            } else if (inputLang !== outputLang) {
-                // Don't translate if same language
-                speech = await getTranslation(
-                    inputLang,
-                    outputLang,
-                    speech.join(' '),
-                );
-                translateSuccess = true;
-            }
-            if (translateSuccess) {
-                speech = speech.split(' ');
-            }
-        }
+        let { voiceSet, outputVoice, translationLang } = getSeparateOutputVoice();
+
         // Remove empty strings
-        speech = speech.filter(el => el);
+        let speechRaw = speech.filter(el => el).join(' ');
 
         // Do not apply replacements if tts is enabled
-        const speechTextUnedited = speech.join(' ');
-        const speechText = ttsEnabled ? speechTextUnedited : applyReplacements(speechTextUnedited);
+        let speechText = useTts ? speechRaw : applyReplacements(speechRaw);
+        
+        let untranslatedSpeechText = speechText;
+        let translatedSpeechText = "";
+        let translateSuccess = false;
+        if (vtsState.translateEnabled) {
+            if (outputLang !== null && !matchOutputLang(inputLang, outputLang)) {
+                // Don't translate if same language
+                try {
+                    translatedSpeechText = await getTranslation(
+                        findMatchingOutputLang(inputLang),
+                        outputLang,
+                        speechText,
+                    );
+                    translateSuccess = true;
+                } catch (err) {
+                    const errorMsg = "Failed to get translation";
+                    console.error(errorMsg);
+                    updateOutputStatus(errorMsg);
+                    throw err;
+                }
+            }
+
+            if (translateSuccess && !vtsState.speakInputEnabled) {
+                speechText = translatedSpeechText;
+            }
+        }
+
         const speechEncoded = encodeURI(speechText);
 
         const noSpeech = speechText.trim() === "";
         const noSpeechEncoded = speechEncoded.trim() === "";
-        const noSpeechIntentional = noSpeech && speechTextUnedited.trim() !== "";
+        const noSpeechIntentional = noSpeech && speechRaw.trim() !== "";
 
-        if (ttsEnabled || !noSpeech || noSpeechIntentional) {
+        if (useTts || !noSpeech || noSpeechIntentional) {
             console.info(`Speech: ${speechText}`);
-            if (socketEnabled) {
-                if (translationLang !== null) {
-                    socket.emit('speech', speechText, untranslatedSpeechText, inputLang, translationLang, translateEnabled, lowlatencyEnabled, ttsEnabled, interimAddition, padSpacing);
-                } else {
-                    socket.emit('speech', speechText, untranslatedSpeechText, inputLang, outputLang, translateEnabled, lowlatencyEnabled, ttsEnabled, interimAddition, padSpacing);
+            if (vtsState.socketEnabled) {
+                let socketInputLang = findMatchingOutputLang(inputLang);
+                let socketOutputLang = outputLang;
+                if (socketOutputLang === null) {
+                    socketOutputLang = findMatchingOutputLang(outputVoice);
                 }
+                socket.emit('speech', speechText, untranslatedSpeechText, translatedSpeechText, socketInputLang, socketOutputLang, vtsState.translateEnabled, vtsState.lowlatencyEnabled, useTts, interimAddition, padSpacing);
             }
         }
 
-        if ((ttsEnabled && noSpeech) || (!ttsEnabled && noSpeechIntentional) || (!ttsEnabled && noSpeechEncoded && !noSpeech)) {
-            appendTranscript(speechText, untranslatedSpeechText, inputLang, translationLang, "");
+        if ((useTts && noSpeech) || (!useTts && noSpeechIntentional) || (!useTts && noSpeechEncoded && !noSpeech)) {
+            appendTranscript(speechText, untranslatedSpeechText, inputLang, outputLang, "");
         } else if (!noSpeech && !noSpeechEncoded) {
             let audioURL = "";
-            if (voiceSet === "s") {
+            if (voiceSet === voiceSetMapping.voiceSetS) {
                 // Using native speech synthesis
-                if (outputLang.toLowerCase().includes('google')) {
-                    let rateAdjusted = rate;
+                if (outputVoice.toLowerCase().includes('google')) {
+                    let rateAdjusted = vtsState.rate;
                     if (rateAdjusted > 1) {
                         // Adjust to strech 1 to 1.3 into 1 to 2
-                        rateAdjusted = 1 + Math.log10(rate);
+                        rateAdjusted = 1 + Math.log10(vtsState.rate);
                     }
-                    audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(pitch, 0.1)}|${outputLang}`;
+                    audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(vtsState.pitch, 0.1)}|${outputVoice}`;
                 } else {
-                    audioURL = `ss:${speechText}|${rate}|${pitch}|${outputLang}`;
+                    audioURL = `ss:${speechText}|${vtsState.rate}|${vtsState.pitch}|${outputVoice}`;
                 }
-            } else if (voiceSet === "a") {
+            } else if (voiceSet === voiceSetMapping.voiceSetA) {
                 // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
-                audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputLang}&q=${speechEncoded}`;
-            } else if (voiceSet === "b") {
+                audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputVoice}&q=${speechEncoded}`;
+            } else if (voiceSet === voiceSetMapping.voiceSetB) {
                 // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&gender=male&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=kvfbSITh
-                audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speechEncoded}&lang=${outputLang}&engine=g3&name=&pitch=${pitch / 2.0}&rate=${rate / 2.0}&volume=1&key=kvfbSITh`
-            } else if (voiceSet === "c") {
+                audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speechEncoded}&lang=${outputVoice}&engine=g3&name=&pitch=${vtsState.pitch / 2.0}&rate=${vtsState.rate / 2.0}&volume=1&key=kvfbSITh`
+            } else if (voiceSet === voiceSetMapping.voiceSetC) {
                 // Example: https://api.streamelements.com/kappa/v2/speech?voice=Justin&text=hello
-                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speechEncoded}`;
-            } else if (voiceSet === "d") {
+                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}`;
+            } else if (voiceSet === voiceSetMapping.voiceSetD) {
                 // Example: https://api.streamelements.com/kappa/v2/speech?voice=en-US-Wavenet-A&text=hello
-                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputLang}&text=${speechEncoded}`;
-            } else if (voiceSet === "e") {
+                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}`;
+            } else if (voiceSet === voiceSetMapping.voiceSetE) {
                 // Using TikTok voice set
-                audioURL = `tt:${speechText}|${outputLang}`;
+                audioURL = `tt:${speechText}|${outputVoice}`;
             }
 
-            appendTranscript(speechText, untranslatedSpeechText, inputLang, translationLang, audioURL);
+            if (vtsState.translateEnabled && translateSuccess) {
+                appendTranscript(translatedSpeechText, untranslatedSpeechText, inputLang, outputLang, audioURL);
+            } else {
+                appendTranscript(speechText, untranslatedSpeechText, inputLang, outputLang, audioURL);
+            }
             playAudio(audioURL, false, false);
         }
     } catch (err) {
@@ -2814,7 +3297,7 @@ async function playBufferedTTS(speech, interimAddition = false, split = true) {
 //     lastIntspeechList = intspeechList;
 
 //     // Wait a predefined time to check for silence before speaking interim speech
-//     await wait(interimWait);
+//     await wait(vtsState.latency);
 
 //     // If the interim speech did not change after the wait, there was enough silence to begin speaking
 //     if (intspeechList === lastIntspeechList || (currIntspeechIndex > 0 &&)) {
@@ -2836,7 +3319,7 @@ async function playBufferedTTS(speech, interimAddition = false, split = true) {
 //     lastIntspeech = intspeech;
 
 //     // Wait a predefined time to check for silence before speaking interim speech
-//     await wait(interimWait);
+//     await wait(vtsState.latency);
 
 //     // If the interim speech did not change after the wait, there was enough silence to begin speaking
 //     if (lastIntspeech === intspeech && intspeechLength < intspeech.length) {
@@ -2897,7 +3380,7 @@ async function playInterimTTSHelper(intspeechList, nonSpacedLang = false) {
                 const interimAddition = intspeechIndex > 0;
                 playBufferedTTS(intspeechList.slice(intspeechIndex), interimAddition, nonSpacedLang);
             }
-        }, interimWait);
+        }, vtsState.latency);
 
         intspeechTimeoutList.push(intspeechTimeout);
     }
@@ -2944,10 +3427,10 @@ function testSpeech() {
     // startButton.textContent = 'In progress';
 
     // To ensure case consistency while checking with the returned output text
-    // diagnosticPara.textContent = '...diagnostic messages';
+    // outputSpeechStatus.textContent = '...diagnostic messages';
 
     recognition.lang = getInputLang();
-    if (lowlatencyEnabled) {
+    if (vtsState.lowlatencyEnabled) {
         recognition.continuous = true;
         recognition.interimResults = true;
     } else {
@@ -2987,7 +3470,7 @@ function testSpeech() {
             return;
         } */
 
-        if (lowlatencyEnabled) {
+        if (vtsState.lowlatencyEnabled) {
             let interimTranscript = '';
 
             // Initially intspeechIndex is set to 0 on start
@@ -3015,7 +3498,6 @@ function testSpeech() {
                 let speechResult = interimTranscript;
                 // let confidenceResult = event.results[event.results.length - 1][0].confidence;
                 if (speechResult === '') {
-                    console.info("NOTHING");
                     // if (lastInterimTranscript !== '') {
                     //     speechResult = lastInterimTranscript;
                     //     lastInterimTranscript = '';
@@ -3033,16 +3515,14 @@ function testSpeech() {
                     speechResult = '—';
                     playInterimTTS('');
                 } else {
-                    console.info("result");
                     // lastInterimTranscript = speechResult;
                     playInterimTTS(speechResult);
                 }
-                diagnosticPara.textContent = `Speech received: ${speechResult}`;
-                console.info(speechResult);
+                outputSpeechStatus.textContent = `Speech received: ${speechResult}`;
                 // outputConfidence.textContent = `Confidence: ${confidenceResult}`;
             }
         } else if (buttonState === 1) {
-            let speechResult = event.results[0][0].transcript;
+            let speechResult = event.results[event.results.length - 1][0].transcript;
             // let confidenceResult = event.results[0][0].confidence;
             if (speechResult === '') {
                 speechResult = '—';
@@ -3050,7 +3530,7 @@ function testSpeech() {
             } else {
                 playBufferedTTS(speechResult, false, true);
             }
-            diagnosticPara.textContent = `Speech received: ${speechResult}`;
+            outputSpeechStatus.textContent = `Speech received: ${speechResult}`;
             // outputConfidence.textContent = `Confidence: ${confidenceResult}`;
         }
     };
@@ -3070,10 +3550,10 @@ function testSpeech() {
         // startButton.disabled = false;
         // startButton.textContent = 'Start';
         console.info('SpeechRecognition.error');
-        console.info(event);
+        console.info(`Error: ${event.error}`);
         updateOutputStatus('recognition error');
         if (buttonState === 1) {
-            diagnosticPara.textContent = `Error occurred in recognition: ${event.error}`;
+            outputSpeechStatus.textContent = `Error occurred in recognition: ${event.error}`;
             if (event.error === 'audio-capture') {
                 startButton.click();
             } else {
@@ -3105,11 +3585,11 @@ function testSpeech() {
         if (buttonState === -1) {
             console.info('SpeechRecognition.stopped');
             updateOutputStatus('recognition stopped');
-            if (socketEnabled) {
+            if (vtsState.socketEnabled) {
                 socket.emit('status', 'stopped');
             }
             buttonState = 0;
-            diagnosticPara.textContent = 'Speech received: —';
+            outputSpeechStatus.textContent = 'Speech received: —';
             startButtonInfo.textContent = 'Press start to begin speech recognition';
             startButton.textContent = 'Start';
             startButton.disabled = false;
@@ -3138,7 +3618,7 @@ function testSpeech() {
         if (buttonState === 1) {
             console.info('SpeechRecognition.soundend');
             updateOutputStatus('sound ended');
-            if (socketEnabled) {
+            if (vtsState.socketEnabled) {
                 socket.emit('status', 'soundend');
             }
         }
@@ -3150,7 +3630,7 @@ function testSpeech() {
         if (buttonState === 1) {
             console.info('SpeechRecognition.speechstart');
             updateOutputStatus('speech detected');
-            if (socketEnabled) {
+            if (vtsState.socketEnabled) {
                 socket.emit('status', 'speechstart');
             }
         }
@@ -3165,16 +3645,12 @@ function testSpeech() {
     };
 }
 
-startButton.addEventListener('click', speechButton);
-
 function resetOptions() {
-    if (document.querySelector('div#tab-settings').classList.contains('active')) {
+    if (tabSettings.classList.contains('active')) {
         $resetSettingsModal.modal('show');
-    } else {
+    } else if (tabReplacements.classList.contains('active')) {
         $resetReplacementsModal.modal('show');
     }
-
-    getCookiesAndUpdate();
 }
 
 function resetSettings() {
@@ -3186,7 +3662,7 @@ function resetSettings() {
     }).nag('show');
 
     for (const key of Object.keys(Cookies.get())) {
-        if (key.startsWith('vts-') && key !== 'vts-replacements') {
+        if (key.startsWith('vts-') && key !== cookieKeys.replacements) {
             Cookies.remove(key);
         }
     }
@@ -3202,48 +3678,86 @@ function resetReplacements() {
         displayTime: 2000
     }).nag('show');
 
-    Cookies.remove('vts-replacements');
+    Cookies.remove(cookieKeys.replacements);
 
     getCookiesAndUpdate();
     resetReplacementsList();
 }
 
-async function getCookiesAndUpdate() {
-    if (getBooleanCookie('vts-mute', false) && !mute) {
-        toggleMute();
-    }
-
-    if (!getBooleanCookie('vts-transcriptEnabled', true)) {
-        $transcriptButton.click();
-    }
-
-    if (!getBooleanCookie('vts-socketEnabled', true) && socketEnabled) {
-        $socketButton.click();
-    }
-
-    if (!getBooleanCookie('vts-ttsEnabled', true)) {
-        $ttsButton.click();
-    }
-
-    if (!getBooleanCookie('vts-diagnosticsEnabled', true)) {
-        $diagnosticsButton.click();
-    }
-
-    if (!getBooleanCookie('vts-lowlatencyEnabled', true) && lowlatencyEnabled) {
-        $lowlatencyButton.click();
-    }
-
-    if (getBooleanCookie('vts-translateEnabled', false) && !translateEnabled) {
-        $translateButton.click();
-    }
-
-    if (!getBooleanCookie('vts-timestampsEnabled', true) && timestampsEnabled) {
-        $timestampsButton.click();
-    }
-
-    if (!getBooleanCookie('vts-translationsEnabled', true) && translationsEnabled) {
-        $translationsButton.click();
+function cleanCookies() {
+    for (const key of Object.keys(Cookies.get())) {
+        if (key.startsWith('vts-') && !Object.values(cookieKeys).includes(key)) {
+            Cookies.remove(key);
+        }
     }
 }
 
+function getCookiesAndUpdate() {
+    getLanguageCookiesAndUpdate();
+    getOuputDeviceCookieAndUpdate();
+    getSliderCookiesAndUpdate();
+
+    if (getBooleanCookie(cookieKeys.muteEnabled, false) !== vtsState.muteEnabled) {
+        $muteButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.transcriptEnabled, true) !== vtsState.transcriptEnabled) {
+        $transcriptButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.socketEnabled, true) !== vtsState.socketEnabled) {
+        $socketButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.ttsEnabled, true) !== vtsState.ttsEnabled) {
+        $ttsButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.statusEnabled, true) !== vtsState.statusEnabled) {
+        $statusButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.lowlatencyEnabled, true) !== vtsState.lowlatencyEnabled) {
+        $lowlatencyButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.syncLanguageEnabled, true) !== vtsState.syncLanguageEnabled) {
+        $syncLanguageButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.translateEnabled, false) !== vtsState.translateEnabled) {
+        $translateButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.speakInputEnabled, false) !== vtsState.speakInputEnabled) {
+        if ($speakInputButton.prop('disabled')) {
+            $speakInputButton.prop('disabled', false);
+            $speakInputButton.click();
+            $speakInputButton.prop('disabled', true);
+        } else {
+            $speakInputButton.click();
+        }
+    }
+
+    if (getBooleanCookie(cookieKeys.timestampsEnabled, true) !== vtsState.timestampsEnabled) {
+        $timestampsButton.click();
+    }
+
+    if (getBooleanCookie(cookieKeys.translationsEnabled, true) !== vtsState.translationsEnabled) {
+        $translationsButton.click();
+    }
+
+    vtsState.latency = getNumericCookie(cookieKeys.latency, defaultVtsState.latency);
+    latencyInput.value = vtsState.latency;
+
+    vtsState.socketAddress = getStringCookie(cookieKeys.socketAddress, defaultVtsState.socketAddress);
+    socketAddressInput.value = vtsState.socketAddress;
+
+    vtsState.socketPort = getNumericCookie(cookieKeys.socketPort, defaultVtsState.socketPort);
+    socketPortInput.value = vtsState.socketPort;
+
+    setupSocket();
+}
+
+cleanCookies();
 getCookiesAndUpdate();

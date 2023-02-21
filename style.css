@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css?family=Open+Sans');
-
 /* Materialize Button */
 
 @media only screen and (min-width: 0) {
@@ -431,7 +429,8 @@ h1, p {
   padding-top: 20px;
   margin-bottom: 20px;
   font-size: 35px;
-  font-weight: bold;
+  -webkit-text-stroke-width: 0.07rem;
+  font-weight: normal;
   text-align: center;
 }
 
@@ -488,8 +487,9 @@ select {
 }
 
 .output {
-  font-style: italic;
-  padding: 20px;
+  font-size: 14px !important;
+  font-style: normal;
+  padding: 5px;
   background-color: rgba(0,0,0,0.2);
 }
 
@@ -522,13 +522,20 @@ select {
 
 .option-text {
   text-align: left;
-  font-weight: bold;
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal;
   color: black;
   margin: 0px;
-  padding-bottom: 5px;
+  padding-top: 2.5px;
+  padding-bottom: 2.5px;
+  text-overflow: clip;
 }
 
 .options-modal, .options-modal > div {
+  font-family: 'Open Sans',arial,sans-serif !important;
+}
+
+.options-input {
   font-family: 'Open Sans',arial,sans-serif !important;
 }
 
@@ -538,8 +545,8 @@ select {
 
 .options-tab {
   font-size: 1rem;
-  padding-bottom: 1rem !important;
-  padding-top: 1rem !important;
+  padding: 1rem !important;
+  padding-bottom: 0.9rem !important;
 }
 
 .options-grid {
@@ -571,6 +578,11 @@ select {
   margin-bottom: 20px;
 }
 
+.bottom-margin-medium {
+  font-size: 15px;
+  margin-bottom: 15px;
+}
+
 .bottom-margin-small {
   font-size: 15px;
   margin-bottom: 5px;
@@ -578,12 +590,6 @@ select {
 
 .divider {
   margin-top: 10px;
-}
-
-@media only screen and (max-width: 767.5px) {
-  .bottom-margin-media {
-    padding-bottom: 15px;
-  }
 }
 
 .overflow-auto {
@@ -598,29 +604,86 @@ select {
   padding-bottom: 0px !important;
 }
 
+.top-padding-media {
+  padding-top: 0.9rem !important;
+}
+
+.top-padding-media-condensed {
+  padding-top: 0.4rem !important;
+}
+
 .top-padding {
-  padding-top: 10px !important;
+  padding-top: 1.6rem !important;
 }
 
 .small-top-padding {
-  padding-top: 5px !important;
+  padding-top: 0.25rem !important;
 }
 
-.slider {
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
+.extra-voice-slider {
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+}
+
+.volume-slider {
+  width: calc(100% - 25px) !important;
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.7rem !important;
+}
+
+.volume-icon {
+  margin-top: 0.85rem !important;
+}
+
+.sync-language-icons {
+  height: 0px !important;
+  margin-right: 0px !important;
+}
+
+.sync-language-icon {
+  font-size: 0.8em !important;
+}
+
+.sync-language-outline-icon {
+  font-size: 1.6em !important;
+  margin-top: -0.23rem !important;
+}
+
+.error-text {
+  color: red !important;
 }
 
 .top-margin {
   margin-top: 10px;
 }
 
+.column {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
 .wide-select {
   width: 100%;
-  padding-top: 9px !important;
-  padding-bottom: 9px !important;
-  max-width: 300px;
+  max-width: 100%;
   min-width: 100px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  white-space: nowrap;
+  text-overflow: clip;
+  font-family: 'Open Sans',arial,sans-serif !important;
+}
+
+.wide-select > input {
+  font-family: 'Open Sans',arial,sans-serif !important;
+}
+
+.ui.sub.header {
+  color: black;
+  font-family: 'Open Sans',arial,sans-serif !important;
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal;
 }
 
 .ui.dropdown > .text {
@@ -649,16 +712,12 @@ select {
 
 .ui.dropdown .menu > .header {
   white-space: pre-wrap;
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal !important;
 }
 
 .menu {
   max-height: 270px !important;
-}
-
-.search {
-  white-space: nowrap;
-  text-overflow: clip;
-  font-family: 'Open Sans',arial,sans-serif !important;
 }
 
 /*.text {
@@ -718,6 +777,12 @@ select {
   font-family: 'Open Sans',arial,sans-serif !important;
 }
 
+.transcript-header-text {
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal !important;
+  font-style: normal;
+}
+
 .transcript {
   display: block;
   margin: 0 auto !important;
@@ -728,7 +793,7 @@ select {
   overflow: auto;
   padding: 10px !important;
   resize: vertical;
-  max-height: calc(100% - 300px);
+  max-height: calc(100% - 285px);
 }
 
 .transcript-body, .transcript-body > div {
@@ -848,18 +913,43 @@ select {
   padding: 0px;
 }
 
+.ui-toggle-button {
+  height: 2em !important;
+  width: 30% !important;
+  padding: 0.4em !important;
+}
+
+.config-button {
+  height: 24.6px !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  padding: 0px !important;
+  overflow: clip;
+}
+
+.ui.labeled.icon.button {
+  padding: 0px !important;
+  padding-left: 36px !important;
+}
+
+.config-icon {
+  padding: 0px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
 .footer-button {
   padding: 6px !important;
   padding-top: 4.5px !important;
   height: 24px;
 }
 
-.export-button {
+/*.export-button {
   padding: 6px !important;
   padding-top: 4.5px !important;
   margin-right: 0px !important;
   height: 24px;
-}
+}*/
 
 .export-icon {
   padding-left: 6px;
@@ -884,7 +974,21 @@ select {
 }
 
 .replacement-entries {
+  min-height: 260.9px !important;
   max-height: 260.9px !important;
+  background-color: rgba(34, 36, 38, 0.1);
+}
+
+::-webkit-scrollbar {
+  background-color: white;
+}
+
+.replacements-placeholder {
+  background-color: rgba(34, 36, 38, 0.1);
+}
+
+.replacements-table {
+  margin: 0px !important;
 }
 
 .pointing-top-right {
@@ -957,10 +1061,16 @@ select {
 }
 
 .table-cell {
+  background-color: white;
   padding-top: 0.25rem !important;
   padding-bottom: 0.25rem !important;
   padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
+}
+
+.table-cell-title {
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal !important;
 }
 
 .table-footer {
@@ -1001,9 +1111,23 @@ select {
   width: 1.8rem;
 }
 
-.tab-replacements {
-  min-height: 322.65px;
-  max-height: 322.65px;
+.options-container {
+  min-height: 367.625px;
+  max-height: 367.625px;
+}
+
+.options-footer {
+  padding-top: 13px !important;
+  padding-bottom: 0px !important;
+  height: 42px !important;
+}
+
+.options-divider {
+  margin: 0.8em !important;
+}
+
+.options-divider-condensed {
+  margin: 0.4em !important;
 }
 
 .replacements-info {
@@ -1012,6 +1136,53 @@ select {
 
 .custom-popup {
   padding: 0.5rem !important;
+}
+
+.settings-checkbox > label {
+  padding-left: 50px !important;
+}
+
+.settings-checkbox {
+  padding: 0px !important;
+  padding-top: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.latency-input {
+  text-align: right !important;
+  max-width: 70% !important;
+  padding-left: 0.25em !important;
+  padding-right: 0.25em !important;
+  padding-bottom: 0.7em !important;
+}
+
+.latency-label {
+  min-width: 30% !important;
+  max-width: 30% !important;
+  padding: 0px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.latency {
+  min-width: 70px !important;
+  max-width: 40% !important;
+  max-height: 1.75em !important;
+  display: inline-flex !important;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .dropdown-checkbox {
@@ -1050,8 +1221,8 @@ select {
   user-select: none;
 }
 
-.search {
-  margin-top: 0.5px !important;
+.accordion {
+  min-width: 100% !important;
 }
 
 .menu > .header {
@@ -1063,53 +1234,98 @@ select {
   border-radius: 5px;
 }
 
-.slider-full {
-  width: calc(100% - 25px) !important;
+.ui.secondary.pointing.menu > .active.item {
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal !important;
 }
 
-.volume-icon {
-  margin-top: 14px !important;
+.ui.dropdown > .menu > .active.item {
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal !important;
 }
 
-@media only screen and (max-width: 991.5px) {
+@media only screen and (max-width: 767.98px) {
+  .bottom-padding-media {
+    padding-bottom: 15px !important;
+  }
+
+  .top-padding-media {
+    padding-top: 1.1rem !important;
+  }
+
+  .top-padding-media-condensed {
+    padding-top: 0.6rem !important;
+  }
+
+  .replacement-entries {
+    min-height: 270px !important;
+    max-height: 270px !important;
+  }
+
+  .ui.modal > .close {
+    top: 0.25rem !important;
+    right: 0px !important;
+  }
+}
+
+@media only screen and (min-width: 767.98px) and (max-width: 991.98px) {
+  .replacement-entries {
+    min-height: 256px !important;
+    max-height: 256px !important;
+  }
+}
+
+@media only screen and (max-width: 991.98px) {
   .close-icon {
-    top: 0.5rem !important;
-    right: 0.5rem !important;
+    top: 0.25rem !important;
+    right: 0px !important;
   }
 
-  .tab-replacements {
-    min-height: 315.3px !important;
-    max-height: 315.3px !important;
-  }
-
-  .replacement-entries {
-    max-height: 256.9px !important;
+  .options-container {
+    min-height: 358.868px !important;
+    max-height: 358.868px !important;
   }
 }
 
-@media only screen and (min-width: 1199.5px) {
-  .tab-replacements {
-    min-height: 330px !important;
-    max-height: 330px !important;
+@media only screen and (min-width: 1199.98px) {
+  .options-container {
+    min-height: 376.35px !important;
+    max-height: 376.35px !important;
   }
 
   .replacement-entries {
+    min-height: 266.9px !important;
     max-height: 266.9px !important;
   }
+
+  .settings-checkbox {
+    min-width: 52.5px !important;
+  }
 }
 
-.bottom-margin-media {
+.empty-footer {
+  height: 3em !important;
+}
+
+.bottom-padding-media {
   color: rgb(249, 250, 251);
   -webkit-transition: color 0.15s;
 }
 
-.bottom-margin-media:hover {
+.bottom-padding-media:hover {
   color: gray;
 }
 
-.extra-text {
+.extra-text-kaomoji {
   color: gray !important;
   white-space: nowrap;
+  font-size: 14px !important;
+}
+
+.extra-text {
+  font-size: 13px !important;
+  margin-top: -6px !important;
+  padding-right: 0.5em !important;
 }
 
 input-placeholder {

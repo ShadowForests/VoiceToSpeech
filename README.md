@@ -1,8 +1,8 @@
 # Voice to Speech
 
-Voice to Speech is an in-browser client-side service that converts a user's voice into synthesized speech live via speech recognition, with optional language translation.
+Voice to Speech is an in-browser client-side service that converts a user's voice into synthesized speech live via speech recognition, with hundreds of voices, text to speech (TTS), language auto-translation, and socket support.
 
-The Chrome browser is required due to lack of speech recognition support in other browsers.
+Known supported browsers: Chrome, Edge, Safari
 
 Visit https://shadowforests.github.io/VoiceToSpeech/ to use Voice to Speech.
 
@@ -21,21 +21,6 @@ Visit https://shadowforests.github.io/VoiceToSpeech/ to use Voice to Speech.
 - Live diagnostics for speech recognition output, confidence, and errors.
 - Use a [web socket](#Web-Socket) to send speech output text directly to your PC.
 - Use two instances to allow [bi-directional translation](#Bi-directional-Translation) between you and someone else.
-
-## Options
-
-- **Input Device**: Select the audio input device by setting it in your browser (changing in options menu is currently not supported).
-- **Output Device**: Select the speech audio output device.
-- **Input Language**: Select the language you are speaking in.
-- **Output Voice/Language**: Select the voice/language/dialect you wish for speech synthesis output. Translation between languages only occurs if translation is enabled, otherwise the output will use the non-translated input. This can be useful to speak with a certain language dialect. Voices under Voice Set A also supports pitch and rate adjustment.
-- **Output Volume**: Change the speech synthesis output volume. You can also press mute so that only the transcript is recorded without speech synthesis.
-- **Pitch/Rate**: Change the speech synthesis pitch and rate (only supported with Voice Set A).
-- **Show Transcript**: Toggles a live speech output transcript with timestamps and playback for any past speech synthesis result.
-- **Show Timestamps**: Toggles the visibility of timestamps in the transcript.
-- **Show Text to Speech**: Toggles the text to speech input box.
-- **Show Diagnostics**: Toggles live diagnostics for speech recognition output, confidence, and errors.
-- **Low-Latency**: Toggles responding to interim speech recognition results for less delay between voice input and speech output. This may result in less accurate results.
-- **Translation**: Toggles auto translation between the input and output languages. Low-Latency is not supported with Translation enabled.
 
 ## Web Socket
 

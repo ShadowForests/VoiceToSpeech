@@ -7,6 +7,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width">
 
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shadowforests.github.io/VoiceToSpeech/">
+    <meta property="og:title" content="Voice to Speech">
+    <meta property="og:image" content="https://shadowforests.github.io/VoiceToSpeech/icon.png">
+    <meta property="og:description" content="Live speech recognition to synthesized speech with hundreds of voices, TTS, language auto-translation, and socket support in-browser.">
+    <meta property="og:site_name" content="Voice to Speech">
+    <meta name="theme-color" content="#26A69A">
+
     <title>Voice To Speech</title>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico?">
 
@@ -15,43 +23,49 @@
     <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap">
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
   </head>
 
   <body>
-    <div id="speech-recognition-unsupported" class="ui red overlay nag" style="display: none;">
-      <span class="title">
-        Speech recognition not supported with this browser or browser settings. Known supported browsers: Chrome, Edge.
+    <div id="speechRecognitionUnsupportedNag" class="ui red overlay nag" style="display: none;">
+      <span class="title unselectable" unselectable="on">
+        Speech recognition not supported with this browser or browser settings. Known supported browsers: Chrome, Edge, Safari.
       </span>
       <i class="close icon"></i>
     </div>
-    <div id="reset-settings-nag" class="ui red overlay nag" style="display: none;">
-      <span class="title">
+    <div id="resetSettingsNag" class="ui red overlay nag" style="display: none;">
+      <span class="title unselectable" unselectable="on">
         Reset all settings.
       </span>
       <i class="close icon"></i>
     </div>
-    <div id="reset-replacements-nag" class="ui red overlay nag" style="display: none;">
-      <span class="title">
+    <div id="resetReplacementsNag" class="ui red overlay nag" style="display: none;">
+      <span class="title unselectable" unselectable="on">
         Reset all replacements.
+      </span>
+      <i class="close icon"></i>
+    </div>
+    <div id="clearTranscriptNag" class="ui red overlay nag" style="display: none;">
+      <span class="title unselectable" unselectable="on">
+        Cleared transcript.
       </span>
       <i class="close icon"></i>
     </div>
     <div class="absolute-top">
       <h1 class="main-h1 unselectable" unselectable="on">Voice To Speech</h1>
-      <p id="startButtonInfo" class="bottom-margin-small unselectable" unselectable="on">Press start to begin speech recognition.</p>
+      <p id="startButtonInfo" class="bottom-margin-small unselectable" unselectable="on">Press start to begin speech recognition</p>
 
       <div class="center bottom-margin unselectable" unselectable="on">
-        <button id="startButton" class="btn center">Start</button>
+        <button id="startButton" class="btn center" onclick="speechButton()">Start</button>
         <button id="optionsButton" class="btn btn-square"><i class="cog icon img-centered"></i></button>
       </div>
 
       <div id="ttsHeader" class="ui top attached raised segment header transcript-header unselectable" unselectable="on">
-        Text to Speech
+        <i class="transcript-header-text">Text to Speech</i>
         <div class="right floated hover-button">
           <i class="close icon img-centered button-medium" onclick="$ttsButton.click()"></i>
         </div>
@@ -66,13 +80,7 @@
       <div class="divider unselectable" unselectable="on"></div>
       
       <div id="transcriptHeader" class="ui top attached raised segment header transcript-header unselectable" unselectable="on">
-        <!--
-        <div class="left floated hover-button button-dropdown button-dropdown-active" onclick="transcriptDropdown()">
-          <i id="transcript-dropdown" class="dropdown icon icon img-centered button-dropdown-icon button-dropdown-icon-active"></i>
-          Transcript
-        </div>
-        -->
-        Transcript
+        <i class="transcript-header-text">Transcript</i>
         <div class="right floated hover-button">
           <i class="close icon img-centered button-medium" onclick="$transcriptButton.click()"></i>
         </div>
@@ -105,96 +113,58 @@
     </div>
 
     <div class="absolute-bottom unselectable" unselectable="on">
-      <div class="ui small modal options-modal">
-        <!-- <div class="header">Settings</div> -->
+      <div id="optionsModal" class="ui small modal">
         <div class="ui secondary pointing tabular menu options-menu">
-          <!-- <a class="active item" data-tab="tab-settings" onclick="$('.content.settings-content').attr('style', 'display: block')"> -->
-          <a class="active item options-tab" data-tab="tab-settings">
+          <a id="tabSettingsButton" class="active item options-tab" data-tab="tab-settings">
             Settings
           </a>
-          <a class="item options-tab" data-tab="tab-replacements">
+          <a id="tabReplacementsButton" class="item options-tab" data-tab="tab-replacements">
             Replacements
+          </a>
+          <a id="tabAboutButton" class="item options-tab" data-tab="tab-about">
+            About
           </a>
         </div>
         <i class="close icon close-icon"></i>
 
-        <div class="content">
-          <div id="tab-replacements" class="ui bottom tab tab-replacements unselectable" unselectable="on" data-tab="tab-replacements">
-            <table id="replacementsTable" class="ui compact celled unstackable scrolling table">
-              <thead>
-                <tr>
-                  <th class="table-button"></th>
-                  <th class="table-cell">Phrase</th>
-                  <th class="table-cell">Replacement</th>
-                  <th class="table-button"></th>
-                </tr>
-              </thead>
-              <tbody id="replacementEntries" class="replacement-entries">
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th class="table-footer" colspan="4">
-                    <span class="ui grey text left table-footer-text">Priority: Top🡒Bottom</span>
-                    <div class="right floated">
-                      <div id="exportReplacementsButton" class="ui button footer-button export-button" onclick="exportReplacements()"><i class="file export icon export-icon"></i></div>
-                      <div class="ui popup custom-popup">
-                        Export Replacements
-                      </div>
-                    </div>
-                    <div class="right floated">
-                      <div id="importReplacementsButton" class="ui disabled button footer-button" onclick="importReplacements()"><i class="file import icon import-icon"></i></div>
-                      <div class="ui popup custom-popup">
-                        Import Replacements
-                      </div>
-                    </div>
-                    <div class="right floated">
-                      <div id="addEntryButton" class="ui button footer-button" onclick="addEmptyReplacementEntry()"><i class="plus icon plus-icon"></i></div>
-                      <div class="ui popup custom-popup">
-                        Add Entry
-                      </div>
-                    </div>
-                  </th>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <div id="tab-settings" class="ui bottom tab tab-settings unselectable" unselectable="on" data-tab="tab-settings">
+        <div id="optionsContainer" class="content options-container">
+          <div id="tabSettings" class="ui bottom tab tab-settings unselectable" unselectable="on" data-tab="tab-settings">
             <div class="ui container grid options-grid">
-              <div class="row no-bottom-padding">
+              <div class="row top-padding-media top-padding-media no-bottom-padding">
                 <div class="eight wide column">
-                  <p class="option-text">Input Device</p>
-                  <select id="audioSource" class="ui selection dropdown dropdown-select wide-select disabled">
+                  <p class="ui left sub header">Input Device</p>
+                  <select id="inputDevice" class="ui selection dropdown dropdown-select wide-select disabled">
                   </select>
                 </div>
 
                 <div class="eight wide column">
-                  <p id="audioOutputText" class="option-text">Output Device</p>
-                  <select id="audioOutput" class="ui selection dropdown dropdown-select wide-select">
-                  </select>
-                </div>
-              </div>
-
-              <div class="row no-bottom-padding">
-                <div class="eight wide column">
-                  <p class="option-text">Input Language</p>
-                  <select id="searchSelectInput" class="ui search selection dropdown dropdown-search wide-select">
-                  </select>
-                </div>
-
-                <div class="eight wide column">
-                  <p id="outputVoiceText" class="option-text">Output Voice</p>
-                  <select id="searchSelectOutput" class="ui search selection dropdown dropdown-search wide-select">
+                  <p id="outputDeviceText" class="ui left sub header">Output Device</p>
+                  <select id="outputDevice" class="ui selection dropdown dropdown-select wide-select">
                   </select>
                 </div>
               </div>
 
-              <div class="row top-padding no-bottom-padding">
-                <div class="wide column">
-                  <p class="option-text no-bottom-padding">Output Volume</p>
+              <div class="row top-padding-media no-bottom-padding">
+                <div class="eight wide column">
+                  <p class="ui left sub header">Input Language</p>
+                  <select id="searchSelectInputLang" class="ui search selection dropdown dropdown-search wide-select">
+                  </select>
+                </div>
+
+                <div class="eight wide column">
+                  <p class="ui left sub header">Output Voice</p>
+                  <select id="searchSelectOutputVoice" class="ui search selection dropdown dropdown-search wide-select">
+                  </select>
+                </div>
+              </div>
+
+              <div class="row top-padding-media no-bottom-padding">
+                <div class="eight wide column">
+                  <p class="option-text no-bottom-padding ui sub header">Volume</p>
                   <div class="left floated">
-                    <i id="volumeMute" class="volume up icon img-centered volume-icon hover-button" onclick="toggleMute()"></i>
+                    <i id="muteButton" class="volume up icon img-centered volume-icon hover-button"></i>
                   </div>
-                  <div id="volumeSlider" class="ui slider slider-full right floated">
+                  <div id="volumeSlider" class="ui slider volume-slider right floated">
                     <div class="inner">
                       <div class="track"></div>
                       <div id="volumeFill" class="track-fill"></div>
@@ -202,13 +172,29 @@
                     </div>
                   </div>
                 </div>
+
+                <div id="outputLangContainer" class="eight wide column">
+                  <p class="ui left sub header">Output Language</p>
+                  <div id="syncLanguageButton" class="ui right floated sync-language-icon hover-button">
+                    <i class="ui right floated icons sync-language-icons">
+                      <i id="syncLanguageIconOutline" class="big square icon sync-language-outline-icon"></i>
+                      <i id="syncLanguageIcon" class="ui right floated fitted inverted exchange alternate icon"></i>
+                    </i>
+                  </div>
+                  <div id="syncLanguagePopup" class="ui popup custom-popup">Sync to Voice</div>
+                  <div id="syncLanguageErrorPopup">
+                    <select id="searchSelectOutputLang" class="ui search selection dropdown dropdown-search wide-select disabled">
+                    </select>
+                  </div>
+                  <div class="ui popup error-text custom-popup">Could not auto-sync,<br>select a language</div>
+                </div>
               </div>
 
-              <div id="extraVoiceOptions" class="row no-top-padding no-bottom-padding" style="display: none !important">
+              <div id="extraVoiceOptions" class="row top-padding-media no-bottom-padding" style="display: none !important">
                 <div class="eight wide column">
-                  <p class="left floated option-text">Pitch</p>
+                  <p class="left floated option-text ui sub header">Pitch</p>
                   <p></p>
-                  <div id="pitchSlider" class="ui slider">
+                  <div id="pitchSlider" class="ui slider extra-voice-slider">
                     <div class="inner">
                       <div class="track"></div>
                       <div class="track-fill"></div>
@@ -218,9 +204,9 @@
                 </div>
 
                 <div class="eight wide column">
-                  <p class="left floated option-text">Rate</p>
+                  <p class="left floated option-text ui sub header">Rate</p>
                   <p></p>
-                  <div id="rateSlider" class="ui slider">
+                  <div id="rateSlider" class="ui slider extra-voice-slider">
                     <div class="inner">
                       <div class="track"></div>
                       <div class="track-fill"></div>
@@ -230,99 +216,395 @@
                 </div>
               </div>
 
-              <div class="row no-bottom-padding">
-                <div class="eight wide column">
-                  <p class="left floated option-text">Transcript</p>
-                  <div class="ui right floated toggle checkbox">
-                    <input id="transcriptCheckbox" type="checkbox" checked>
-                    <label></label>
-                  </div>
-                  </div>
+              <div class="ui divider no-top-padding no-bottom-padding options-divider"></div>
 
-                  <div class="eight wide column">
-                    <p class="left floated option-text">Socket</p>
-                  <div class="ui right floated toggle checkbox">
-                    <input id="socketCheckbox" type="checkbox" checked>
-                    <label></label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row no-bottom-padding small-top-padding">
-                <div class="eight wide column">
-                  <p class="left floated option-text">TTS Input</p>
-                  <div class="ui right floated toggle checkbox">
-                    <input id="ttsCheckbox" type="checkbox" checked>
-                    <label></label>
-                  </div>
-                  </div>
-
-                  <div class="eight wide column">
-                    <p class="left floated option-text">Diagnostics</p>
-                  <div class="ui right floated toggle checkbox">
-                    <input id="diagnosticsCheckbox" type="checkbox" checked>
-                    <label></label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="row small-top-padding">
+              <div class="row small-top-padding no-bottom-padding">
                 <div class="eight wide column">
                   <p class="left floated option-text">Low-Latency</p>
-                  <div class="ui right floated toggle checkbox">
+                  <div class="ui right floated toggle checkbox settings-checkbox">
                     <input id="lowlatencyCheckbox" type="checkbox" checked>
                     <label></label>
                   </div>
                 </div>
 
+                <div class="three wide column">
+                  <p class="left floated option-text">Latency</p>
+                </div>
+
+                <div class="five wide column">
+                  <div id="latencyContainer" class="ui right labeled input latency">
+                    <input id="latencyInput" class="latency-input options-input" type="number" step="1" min="1" max="2000" value="1000">
+                    <div class="ui label latency-label">ms</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row small-top-padding no-bottom-padding">
                 <div class="eight wide column">
                   <p class="left floated option-text">Translation</p>
-                  <div class="ui right floated toggle checkbox">
-                    <input id="translateCheckbox" type="checkbox" name="public">
+                  <div class="ui right floated toggle checkbox settings-checkbox">
+                    <input id="translateCheckbox" type="checkbox">
                     <label></label>
                   </div>
+                </div>
+
+                <div class="eight wide column">
+                  <p class="left floated option-text">Speak Input</p>
+                  <div class="ui right floated toggle checkbox settings-checkbox">
+                    <input id="speakInputCheckbox" type="checkbox" disabled>
+                    <label></label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ui divider no-top-padding no-bottom-padding options-divider"></div>
+
+              <div class="row small-top-padding">
+                <div class="eight wide column">
+                  <button id="uiMenuButton" class="ui labeled icon fluid button config-button">
+                    <i class="cog icon config-icon"></i>
+                    <label class="config-button-label">UI Visibility</label>
+                  </button>
+                </div>
+
+                <div class="eight wide column">
+                  <button id="socketMenuButton" class="ui labeled icon fluid button config-button">
+                    <i class="cog icon config-icon"></i>
+                    <label class="config-button-label">Socket Setup</label>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="tabReplacements" class="ui bottom tab tab-replacements unselectable" unselectable="on" data-tab="tab-replacements">
+            <table id="replacementsTable" class="ui compact celled unstackable scrolling table replacements-table">
+              <thead>
+                <tr>
+                  <th class="table-button"></th>
+                  <th class="table-cell table-cell-title">Phrase</th>
+                  <th class="table-cell table-cell-title">Replacement</th>
+                  <th class="table-button"></th>
+                </tr>
+              </thead>
+              <tbody id="replacementEntries" class="replacement-entries">
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th class="table-footer" colspan="4">
+                    <span class="ui grey text left table-footer-text">Priority: Top⭢Bottom</span>
+                    <div class="right floated">
+                      <div id="exportReplacementsButton" class="ui button footer-button" onclick="exportReplacements()">
+                        <i class="file export icon export-icon"></i>
+                      </div>
+                      <div class="ui popup custom-popup">
+                        Export Replacements
+                      </div>
+                    </div>
+                    <div class="right floated">
+                      <div id="importReplacementsButton" class="ui disabled button footer-button" onclick="importReplacements()">
+                        <i class="file import icon import-icon"></i>
+                      </div>
+                      <div class="ui popup custom-popup">
+                        Import Replacements
+                      </div>
+                    </div>
+                    <div class="right floated">
+                      <div id="addEntryButton" class="ui button footer-button" onclick="addEmptyReplacementEntry()">
+                        <i class="plus icon plus-icon"></i>
+                      </div>
+                      <div class="ui popup custom-popup">
+                        Add Entry
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div id="tabAbout" class="ui bottom tab tab-about" data-tab="tab-about">
+            <div id="aboutAccordion" class="ui styled accordion">
+              <div class="active title">
+                <i class="dropdown icon"></i>
+                What is Voice to Speech?
+              </div>
+              <div class="active content">
+                <b>Voice to Speech</b> is an in-browser client-side service that converts a user's voice into synthesized speech live via speech recognition, with optional language translation.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                It's not working!
+              </div>
+              <div class="content">
+                Ensure that you have allowed microphone access for this website in your browser. If nothing is working, your browser may not be supported. Please try a known supported browser, such as <b>Chrome</b>, <b>Edge</b>, or <b>Safari</b>.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                I can't hear anything!
+              </div>
+              <div class="content">
+                Make sure you have selected the correct <b>Output Device</b>, and make sure that it is being routed properly. Ensure the volume is turned on in both the website and in the device itself. If you are still having issues, it could be that your selected <b>Output Voice</b> is not currently working. If so, try selecting a different voice.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                What kinds of voices are there?
+              </div>
+              <div class="content">
+                Currently, there are 6 sets of voices:
+                <br>- <b>Voice Set A [Default]</b>: A default set of voices.
+                <br>- <b>Voice Set B [Special]</b>: This set of voices supports pitch and rate adjustment.
+                <br>- <b>Voice Set C [StreamElements]</b>: Voices from StreamElements.
+                <br>- <b>Voice Set D [WaveNet]</b>: Voices generated using the WaveNet model.
+                <br>- <b>Voice Set E [TikTok]</b>: Voices from TikTok, including some singing voices for your amusement.
+                <br>- <b>Built-in Voices</b>: Voices built-in to your browser and/or computer with support for pitch and rate adjustment. May include custom voices you have installed on your computer if they are supported.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How can I adjust the pitch and rate of a voice?
+              </div>
+              <div class="content">
+                Currently, only voices under <b>Voice Set B</b> and <b>Built-in Voices</b> support pitch and rate customization.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How do I change which microphone is used for speech recognition?
+              </div>
+              <div class="content">
+                To change which microphone is used for speech recognition, look in your browser window for an option to select your microphone. Most commonly, you will find this option in a button that will show up in your address bar. Look for an icon that looks like a microphone or video camera.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How can I route this website's audio output to another program as a microphone input?
+              </div>
+              <div class="content">
+                To route audio from this website to another program, you will need a <b>virtual audio router</b>. You can download one for free here: <a href="https://vb-audio.com/Cable/index.htm" target="_blank"><b>VB-CABLE Virtual Audio Device</b></a>.
+                <br><br>
+                Once you have one installed, reload this page and select the new device as the output device from the <b>Settings</b> menu. You can then use the corresponding microphone from other programs.
+                <br><br>
+                If you are still not getting audio through the right device, you may have to instead route the browser's audio from your computer's audio settings. For Windows, this can be found from <b>Settings > Sound Settings > App volume and device preferences</b>. From here, set your browser's <b>Output</b> device to your preferred device.
+                <br><br>
+                Please note that <b>Built-in Voices</b> cannot directly use the selected audio device option, and will need to use the above method to route your browser's audio.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How can I connect the output text to the VRChat chatbox?
+              </div>
+              <div class="content">
+                Download and run <b>OSCKeyboard</b> <i>(Link TBD)</i>, then go to <b>Socket Setup</b> in the <b>Settings</b> menu and make sure <b>Socket</b> is enabled. For the default settings, set the <b>Address</b> to [<code><b>localhost</b></code>] and the <b>Port</b> to [<code><b>3000</b></code>]. The program will then automatically route the output text from this website to the VRChat chatbox.
+                <br><br>
+                If you would like to make your own program to perform this connection, you will need to listen to the socket output and send OSC messages to the VRChat chatbox. For more information on how to set up the socket, see the <b>"How do I connect to the socket from another program?"</b> section.
+                <br><br>
+                For documentation on VRChat's OSC system, take a look at the <a href="https://docs.vrchat.com/docs/osc-overview" target="_blank"><b>OSC Overview</b></a>. For information on the chatbox input specifically, visit <a href="https://docs.vrchat.com/docs/osc-as-input-controller#supported-inputs" target="_blank"><b>OSC as Input Controller</b></a>.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                What is Low-Latency mode?
+              </div>
+              <div class="content">
+                <b>Low-Latency</b> mode will try to speak as soon as you pause from talking. To adjust how quickly it will speak, you can adjust the <b>Latency</b> in milliseconds to any value between [<code><b>1</b></code>] and [<code><b>2000</b></code>] (or a maximum of 2 seconds). Increase this time if you feel like you need more time to finish talking. If this is disabled, speech recognition will try to wait until you are completely finished talking before speaking.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                What are Replacements?
+              </div>
+              <div class="content">
+                <b>Replacements</b> are a method to replace words or phrases with different text. If your input speech contains a given <b>Phrase</b>, it will be swapped with the corresponding <b>Replacement</b> text. If you have translation enabled, the replacements will be applied before translation. Replacements will be applied one by one from top to bottom in priority. Keep this in mind if you have replacements that may conflict with each other.
+                <br><br>
+                Some things you can use this for include:
+                <br>- Replacing text with <b>punctuation</b>
+                <br>- Replacing text with <b>emojis</b> or other <b>special symbols</b>
+                <br>- Correcting <b>non-standard names</b> that are being detected incorrectly as another word or words
+                <br>- Sending an <b>empty message</b> through socket, which can be useful for things like clearing out a connected VRChat chatbox
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How can I set up automatic translations?
+              </div>
+              <div class="content">
+                There are a few options to customize how translations are handled. If you enable <b>Translation</b> from the <b>Settings</b> menu, your speech will be automatically translated to the specified <b>Output Language</b> before being spoken.
+                <br><br>
+                If you would like to use a different language than the default for an <b>Output Voice</b>, you can click the button above the output language to disable <b>Sync to Voice</b>.
+                <br><br>
+                If you would like the website to directly speak your untranslated input speech instead of the translated text, turn on <b>Speak Input</b>. The translated text will still be generated and logged in the transcript and emitted through the socket.
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                How do I connect to the socket from another program?
+              </div>
+              <div class="content">
+                To enable the socket connection, go to <b>Socket Setup</b> in the <b>Settings</b> menu and make sure <b>Socket</b> is enabled. For the default settings, set the <b>Address</b> to [<code><b>localhost</b></code>] and the <b>Port</b> to [<code><b>3000</b></code>]. You can then hook the output from this website into other services by implementing a <b>socket listener</b> in your choice of programming language.
+                <br><br>
+                The following events are emitted:
+                <br>
+                [<code><b>status</b></code>]
+                <br>
+                &emsp;- <code><b>[0] status</b></code>: Current speech recognition status
+                <br>
+                [<code><b>speech</b></code>]
+                <br>&emsp;- <code><b>[0] speech</b></code>: The text that was spoken
+                <br>&emsp;- <code><b>[1] untranslatedSpeech</b></code>: The spoken text before translation
+                <br>&emsp;- <code><b>[2] translatedSpeech</b></code>: The spoken text after translation
+                <br>&emsp;- <code><b>[3] inputLang</b></code>: The input language code
+                <br>&emsp;- <code><b>[4] outputLang</b></code>: The output language code
+                <br>&emsp;- <code><b>[5] translateEnabled</b></code>: Whether translation is enabled
+                <br>&emsp;- <code><b>[6] lowlatencyEnabled</b></code>: Whether low latency mode is enabled
+                <br>&emsp;- <code><b>[7] ttsEnabled</b></code>: Whether the text was output using Text-to-Speech input instead of voice recognition
+                <br>&emsp;- <code><b>[8] interimAddition</b></code>: Whether this text is being appended to a previous Low-Latency result
+                <br>&emsp;- <code><b>[9] padSpacing</b></code>: If this is a Low-Latency interim addition, whether this language may need a space to be padded before connecting to previous interim text
+              </div>
+
+              <div class="title">
+                <i class="dropdown icon"></i>
+                I have a suggestion or bug to report!
+              </div>
+              <div class="content">
+                Please open a new issue on <a href="https://github.com/ShadowForests/VoiceToSpeech" target="_blank"><b>GitHub</b></a>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions bottom-padding-media options-footer unselectable" unselectable="on">
+          <div class="bottom-padding-media left floated reset-button">
+            <i id="resetOptionsButton" class="refresh icon img-centered hover-button"></i>
+          </div>
+          <div class="bottom-padding-media">
+            <div class="right floated"><span class="extra-text-kaomoji">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span></div>
+            <div class="extra-text right floated">
+              <span>Created by ShadowForest<br><div id="_version">Version Unknown</div></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="resetSettingsModal" class="ui mini modal">
+        <div class="header unselectable" unselectable="on">Reset Settings</div>
+        <div class="content unselectable" unselectable="on">
+          <p>Are you sure you want to reset all settings?</p>
+        </div>
+        <div class="actions unselectable" unselectable="on">
+          <div class="ui button" onclick="$('div#resetSettingsModal').modal('hide')">Cancel</div>
+          <div class="ui red button" onclick="resetSettings()">Reset</div>
+        </div>
+      </div>
+
+      <div id="resetReplacementsModal" class="ui mini modal reset-replacements-modal">
+        <div class="header unselectable" unselectable="on">Reset Replacements</div>
+        <div class="content unselectable" unselectable="on">
+          <p>Are you sure you want to reset all replacements?</p>
+        </div>
+        <div class="actions unselectable" unselectable="on">
+          <div class="ui button" onclick="$('div#resetReplacementsModal').modal('hide')">Cancel</div>
+          <div class="ui red button" onclick="resetReplacements()">Reset</div>
+        </div>
+      </div>
+
+      <div id="clearTranscriptModal" class="ui mini modal unselectable" unselectable="on">
+        <div class="header unselectable" unselectable="on">Clear Transcript</div>
+        <div class="content unselectable" unselectable="on">
+          <p>Are you sure you want to clear the transcript?</p>
+        </div>
+        <div class="actions unselectable" unselectable="on">
+          <div class="ui button" onclick="$('div#clearTranscriptModal').modal('hide')">Cancel</div>
+          <div class="ui red button" onclick="clearTranscript()">Clear</div>
+        </div>
+      </div>
+
+      <div id="uiMenuModal" class="ui mini modal unselectable" unselectable="on">
+        <div class="header unselectable" unselectable="on">UI Visibility</div>
+
+        <div class="content unselectable" unselectable="on">
+          <div class="ui container grid">
+            <div class="row no-bottom-padding">
+              <div class="wide column">
+                <p class="left floated option-text">TTS Input</p>
+                <div class="ui right floated toggle checkbox settings-checkbox">
+                  <input id="ttsCheckbox" type="checkbox" checked>
+                  <label></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row small-top-padding no-bottom-padding">
+              <div class="wide column">
+                <p class="left floated option-text">Transcript</p>
+                <div class="ui right floated toggle checkbox settings-checkbox">
+                  <input id="transcriptCheckbox" type="checkbox" checked>
+                  <label></label>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row small-top-padding">
+              <div class="wide column">
+                <p class="left floated option-text">Status</p>
+                <div class="ui right floated toggle checkbox settings-checkbox">
+                  <input id="statusCheckbox" type="checkbox" checked>
+                  <label></label>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="actions bottom-margin-media unselectable" unselectable="on">
-          <div class="bottom-margin-media left floated">
-            <i id="resetOptionsButton" class="refresh icon img-centered hover-button reset-button"></i>
+        <div class="actions empty-footer unselectable" unselectable="on"></div>
+      </div>
+
+      <div id="socketMenuModal" class="ui mini modal unselectable" unselectable="on">
+        <div class="header unselectable" unselectable="on">Socket Setup</div>
+
+        <div class="content unselectable" unselectable="on">
+          <div class="ui container grid">
+            <div class="row no-bottom-padding">
+              <div class="wide column">
+                <p class="left floated option-text">Socket</p>
+                <div class="ui right floated toggle checkbox settings-checkbox">
+                  <input id="socketCheckbox" type="checkbox" checked>
+                  <label></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="ui divider no-top-padding no-bottom-padding options-divider"></div>
+
+            <div class="row no-top-padding">
+              <div class="wide column">
+                <p class="ui left sub header">Address</p><br>
+                <div class="ui fluid input">
+                  <input id="socketAddressInput" class="options-input" type="text" value="localhost">
+                </div>
+              </div>
+            </div>
+
+            <div class="row no-top-padding">
+              <div class="wide column">
+                <p class="ui left sub header">Port</p><br>
+                <div class="ui fluid input">
+                  <input id="socketPortInput" class="options-input" type="number" min="0" max="65535" value="3000">
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="bottom-margin-media">
-            <span>Created by ShadowForest </span><span class="extra-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
-          </div>
         </div>
+
+        <div class="actions empty-footer unselectable" unselectable="on"></div>
       </div>
 
-      <div class="ui mini modal reset-settings-modal">
-        <div class="header">Reset Settings</div>
-        <div class="content">
-          <p>Are you sure you want to reset all settings?</p>
-        </div>
-        <div class="actions">
-          <div class="ui button" onclick="$('.ui.modal.reset-settings-modal').modal('hide')">Cancel</div>
-          <div class="ui red button" onclick="resetSettings()">Reset</div>
-        </div>
-      </div>
-
-      <div class="ui mini modal reset-replacements-modal">
-        <div class="header">Reset Replacements</div>
-        <div class="content">
-          <p>Are you sure you want to reset all replacements?</p>
-        </div>
-        <div class="actions">
-          <div class="ui button" onclick="$('.ui.modal.reset-replacements-modal').modal('hide')">Cancel</div>
-          <div class="ui red button" onclick="resetReplacements()">Reset</div>
-        </div>
-      </div>
-
-      <div class="center bottom-margin">
-        <p id="diagnostics" class="output bottom-margin">
-          <label id="outputDiag">Speech received: —</label>
-          </br>
+      <div class="center bottom-margin-medium">
+        <p id="statusBar" class="output bottom-margin">
+          <label id="outputSpeechStatus">Speech received: —</label>
           <!-- <label id="outputConfidence" class="confidence">Confidence: —</label> -->
           <label id="outputStatus" class="confidence">Status: —</label>
         </p>
@@ -337,7 +619,7 @@
             <td class="table-cell"><div class="ui fluid transparent input"><input class="ui segment table-cell-input options phrase" type="text" value="" placeholder="Type here..." oninput="onPhraseUpdate(this)"></input></div></td>
             <td class="table-cell"><div class="ui fluid transparent input"><input class="ui segment table-cell-input options replacement" type="text" value="" placeholder="Empty text" oninput="updateReplacementsList()"></input></div></td>
             <td class="table-button">
-              <div class="ui dropdown hover-button item replacement-dropdown new-replacement-dropdown" onclick="showReplacementDropdownMenu(this)">
+              <div class="ui dropdown hover-button item replacement-dropdown new-replacement-dropdown" ontouchstart="showReplacementDropdownMenuTouch(this)" onclick="showReplacementDropdownMenu(this)">
                 <i class="ellipsis horizontal icon"></i>
                 <div class="left menu replacement-menu">
                   <div class="item dropdown-checkbox">
@@ -366,21 +648,21 @@
         </tbody>
       </table>
 
-      <table id="replacementsTableClone" class="ui compact celled unstackable scrolling table draggable">
+      <table id="replacementsTableClone" class="ui compact celled unstackable scrolling table draggable replacements-table">
         <thead>
           <tr>
             <th class="table-button draggable"></th>
-            <th class="table-cell draggable">Phrase</th>
-            <th class="table-cell draggable">Replacement</th>
+            <th class="table-cell table-cell-title draggable">Phrase</th>
+            <th class="table-cell table-cell-title draggable">Replacement</th>
             <th class="table-button draggable"></th>
           </tr>
         </thead>
-        <tbody id="replacementEntriesClone" class="replacement-entries clone-list draggable">
+        <tbody id="replacementEntriesClone" class="replacement-entries clone-list draggable" onscroll="replacementsTableMouseMoveHandler(this)">
         </tbody>
         <tfoot>
           <tr>
             <th class="table-footer draggable" colspan="4">
-              <span class="ui grey text left table-footer-text">Priority: Top🡒Bottom</span>
+              <span class="ui grey text left table-footer-text">Priority: Top⭢Bottom</span>
               <div class="right floated">
                 <div class="ui button footer-button export-button draggable"><i class="file export icon export-icon"></i></div>
               </div>
