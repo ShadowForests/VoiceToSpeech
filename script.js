@@ -14,26 +14,37 @@ try {
 // let SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList || mozSpeechGrammarList || msSpeechGrammarList;
 // let SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent || mozSpeechGrammarList || msSpeechGrammarList;
 
-// Cookies
+// StorageItems
 
-function setCookie(cname, cvalue) {
-    Cookies.set(cname, cvalue, { expires: 365 });
+function setStorageItem(cname, cvalue) {
+    window.localStorage.setItem(cname, cvalue);
 }
 
-function getNumericCookie(cname, cdefault) {
-    let result = parseFloat(Cookies.get(cname));
-    return isNaN(result) || result === undefined ? cdefault : result;
+function getNumericStorageItem(cname, cdefault) {
+    let result = parseFloat(window.localStorage.getItem(cname));
+    return result == null || isNaN(result) ? cdefault : result;
 }
 
-function getBooleanCookie(cname, cdefault) {
-    let result = Cookies.get(cname);
-    return result === undefined ? cdefault : result === "true";
+function getBooleanStorageItem(cname, cdefault) {
+    let result = window.localStorage.getItem(cname);
+    return result == null ? cdefault : result === "true";
 }
 
-function getStringCookie(cname, cdefault) {
-    let result = Cookies.get(cname);
-    return result === undefined ? cdefault : result;
+function getStringStorageItem(cname, cdefault) {
+    let result = window.localStorage.getItem(cname);
+    return result == null ? cdefault : result;
 }
+
+// Remove after transfer along with Cookies script
+function transferCookiesToStorage() {
+    for (const key of Object.keys(Cookies.get())) {
+        if (key.startsWith('vts-')) {
+            window.localStorage.setItem(key, Cookies.get(key));
+            Cookies.remove(key);
+        }
+    }
+}
+transferCookiesToStorage();
 
 // Target elements
 
@@ -138,7 +149,7 @@ const voiceSetMapping = {
     voiceSetS: "s"
 }
 
-const cookieKeys = {
+const storageItemKeys = {
     socketAddress: 'vts-socketAddress',
     socketPort: 'vts-socketPort',
 
@@ -179,7 +190,6 @@ function getSpeakInputEnabled() { return $speakInputButton.prop('checked'); }
 function getTimestampsEnabled() { return $timestampsButton.checkbox('is checked'); }
 function getTranslationsEnabled() { return $translationsButton.checkbox('is checked'); }
 
-// If the default is changed, change in html as well
 const defaultVtsState = {
     socketAddress: "localhost",
     socketPort: 3000,
@@ -205,7 +215,6 @@ const defaultVtsState = {
     volume: 100,
     rate: 1.0,
     pitch: 1.0,
-
 }
 
 let vtsState = {...defaultVtsState};
@@ -1218,21 +1227,21 @@ $('.dropdown-search')
         e.preventDefault();
     });
 
-let updateLangCookies = function() {
+let updateLangStorageItems = function() {
     vtsState.inputLangSelect = inputLangSelect.value;
     vtsState.outputVoiceSelect = outputVoiceSelect.value;
     vtsState.outputLangSelect = outputLangSelect.value;
 
-    setCookie(cookieKeys.inputLangSelect, vtsState.inputLangSelect);
-    setCookie(cookieKeys.outputVoiceSelect, vtsState.outputVoiceSelect);
-    setCookie(cookieKeys.outputLangSelect, vtsState.outputLangSelect);
+    setStorageItem(storageItemKeys.inputLangSelect, vtsState.inputLangSelect);
+    setStorageItem(storageItemKeys.outputVoiceSelect, vtsState.outputVoiceSelect);
+    setStorageItem(storageItemKeys.outputLangSelect, vtsState.outputLangSelect);
 }
 
-function getLanguageCookiesAndUpdate() {
+function getLanguageStorageItemsAndUpdate() {
     // Set default lang selections
-    inputLangSelect.value = getStringCookie(cookieKeys.inputLangSelect, defaultVtsState.inputLangSelect);
-    outputVoiceSelect.value = getStringCookie(cookieKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
-    outputLangSelect.value = getStringCookie(cookieKeys.outputLangSelect, defaultVtsState.outputLangSelect);
+    inputLangSelect.value = getStringStorageItem(storageItemKeys.inputLangSelect, defaultVtsState.inputLangSelect);
+    outputVoiceSelect.value = getStringStorageItem(storageItemKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
+    outputLangSelect.value = getStringStorageItem(storageItemKeys.outputLangSelect, defaultVtsState.outputLangSelect);
 
     if (inputLangSelect.selectedIndex === -1) {
         inputLangSelect.value = defaultVtsState.inputLangSelect;
@@ -1246,7 +1255,7 @@ function getLanguageCookiesAndUpdate() {
         outputLangSelect.value = defaultVtsState.outputLangSelect;
     }
 
-    updateLangCookies();
+    updateLangStorageItems();
 
     setInputLangSelect(inputLangSelect.value);
     setOutputVoiceSelect(outputVoiceSelect.value);
@@ -1298,15 +1307,15 @@ function fillLanguages() {
         addVoiceSetBuiltin();
     }
 
-    getLanguageCookiesAndUpdate();
+    getLanguageStorageItemsAndUpdate();
 }
 
-const tempOutputVoiceSelect = getStringCookie(cookieKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
+const tempOutputVoiceSelect = getStringStorageItem(storageItemKeys.outputVoiceSelect, defaultVtsState.outputVoiceSelect);
 fillLanguages();
 speechSynthesis.onvoiceschanged = function() {
     // Update in case speech synthesis voices were selected previously
     if (getVoiceSet(tempOutputVoiceSelect) === voiceSetMapping.voiceSetS) {
-        setCookie(cookieKeys.outputVoiceSelect, tempOutputVoiceSelect);
+        setStorageItem(storageItemKeys.outputVoiceSelect, tempOutputVoiceSelect);
     }
     fillLanguages();
 };
@@ -1431,10 +1440,10 @@ let volumeSliderActive = false;
 let pitchSliderActive = false;
 let rateSliderActive = false;
 
-function getSliderCookiesAndUpdate() {
-    vtsState.volume = getNumericCookie(cookieKeys.volume, defaultVtsState.volume);
-    vtsState.rate = getNumericCookie(cookieKeys.rate, defaultVtsState.rate);
-    vtsState.pitch = getNumericCookie(cookieKeys.pitch, defaultVtsState.pitch);
+function getSliderStorageItemsAndUpdate() {
+    vtsState.volume = getNumericStorageItem(storageItemKeys.volume, defaultVtsState.volume);
+    vtsState.rate = getNumericStorageItem(storageItemKeys.rate, defaultVtsState.rate);
+    vtsState.pitch = getNumericStorageItem(storageItemKeys.pitch, defaultVtsState.pitch);
 
     initSliders();
 }
@@ -1456,7 +1465,7 @@ $muteButton.click(() => {
         $volumeThumb.css('background-color', 'white');
         $volumeFill.css('background-color', 'black');
     }
-    setCookie(cookieKeys.muteEnabled, vtsState.muteEnabled);
+    setStorageItem(storageItemKeys.muteEnabled, vtsState.muteEnabled);
 });
 
 // Used by volume slider on mousedown
@@ -1539,7 +1548,7 @@ function initSliders() {
         step: 0,
         onMove(data) {
             vtsState.volume = data.toFixed();
-            setCookie(cookieKeys.volume, vtsState.volume);
+            setStorageItem(storageItemKeys.volume, vtsState.volume);
             try {
                 $volumeThumb.popup('change content', `${vtsState.volume}%`).popup('reposition');
             } catch (err) {
@@ -1555,7 +1564,7 @@ function initSliders() {
         step: 0.1,
         onMove(data) {
             vtsState.pitch = data.toFixed(1);
-            setCookie(cookieKeys.pitch, vtsState.pitch);
+            setStorageItem(storageItemKeys.pitch, vtsState.pitch);
             try {
                 $pitchThumb.popup('change content', `${vtsState.pitch}`).popup('reposition');
             } catch (err) {
@@ -1571,7 +1580,7 @@ function initSliders() {
         step: 0.1,
         onMove(data) {
             vtsState.rate = data.toFixed(1);
-            setCookie(cookieKeys.rate, vtsState.rate);
+            setStorageItem(storageItemKeys.rate, vtsState.rate);
             try {
                 $rateThumb.popup('change content', `${vtsState.rate}`).popup('reposition');
             } catch (err) {
@@ -1655,22 +1664,22 @@ function syncOutputLang() {
         $syncLanguageButton.click();
     }
 
-    updateLangCookies();
+    updateLangStorageItems();
 }
 
 inputLangSelect.onchange = function() {
-    updateLangCookies();
+    updateLangStorageItems();
     restartSpeech();
 }
 
 outputVoiceSelect.onchange = function() {
-    updateLangCookies();
+    updateLangStorageItems();
     onOutputVoiceChange();
 }
 
 outputLangSelect.onchange = function() {
     syncOutputLang();
-    updateLangCookies();
+    updateLangStorageItems();
 }
 
 // Init Options Menu
@@ -1815,7 +1824,7 @@ $ttsInput.on('keypress', function(e) {
 
 $syncLanguageButton.click(() => {
     vtsState.syncLanguageEnabled = !getSyncLanguageEnabled();
-    setCookie(cookieKeys.syncLanguageEnabled, vtsState.syncLanguageEnabled);
+    setStorageItem(storageItemKeys.syncLanguageEnabled, vtsState.syncLanguageEnabled);
 
     if (vtsState.syncLanguageEnabled) {
         $syncLanguageIcon.addClass('inverted');
@@ -1831,12 +1840,12 @@ $syncLanguageButton.click(() => {
     }
 
     syncOutputLang();
-    updateLangCookies();
+    updateLangStorageItems();
 });
 
 $transcriptButton.click(() => {
     vtsState.transcriptEnabled = getTranscriptEnabled();
-    setCookie(cookieKeys.transcriptEnabled, vtsState.transcriptEnabled);
+    setStorageItem(storageItemKeys.transcriptEnabled, vtsState.transcriptEnabled);
 
     if (vtsState.transcriptEnabled) {
         transcriptHeader.style.display = 'block';
@@ -1850,19 +1859,19 @@ $transcriptButton.click(() => {
 
 $socketButton.click(() => {
     vtsState.socketEnabled = getSocketEnabled();
-    setCookie(cookieKeys.socketEnabled, vtsState.socketEnabled);
+    setStorageItem(storageItemKeys.socketEnabled, vtsState.socketEnabled);
 });
 
 socketAddressInput.onchange = function() {
     vtsState.socketAddress = this.value;
-    setCookie(cookieKeys.socketAddress, vtsState.socketAddress);
+    setStorageItem(storageItemKeys.socketAddress, vtsState.socketAddress);
     setupSocket();
 };
 
 socketPortInput.onchange = function() {
     this.value = Math.max(Math.min(this.value, this.max), this.min);
     vtsState.socketPort = this.value;
-    setCookie(cookieKeys.socketPort, vtsState.socketPort);
+    setStorageItem(storageItemKeys.socketPort, vtsState.socketPort);
     setupSocket();
 };
 
@@ -1884,7 +1893,7 @@ $transcriptDropdown.dropdown({
 $timestampsButton.checkbox({
     onChange: function() {
         vtsState.timestampsEnabled = getTimestampsEnabled();
-        setCookie(cookieKeys.timestampsEnabled, vtsState.timestampsEnabled);
+        setStorageItem(storageItemKeys.timestampsEnabled, vtsState.timestampsEnabled);
         if (vtsState.timestampsEnabled) {
             document.querySelectorAll('div#transcriptTime').forEach(e => e.style.display = "block");
         } else {
@@ -1896,7 +1905,7 @@ $timestampsButton.checkbox({
 $translationsButton.checkbox({
     onChange: function() {
         vtsState.translationsEnabled = getTranslationsEnabled();
-        setCookie(cookieKeys.translationsEnabled, vtsState.translationsEnabled);
+        setStorageItem(storageItemKeys.translationsEnabled, vtsState.translationsEnabled);
         if (vtsState.translationsEnabled) {
             document.querySelectorAll('div#transcriptTranslation').forEach(e => e.style.display = "block");
         } else {
@@ -1920,7 +1929,7 @@ function clearTranscript() {
 
 $ttsButton.click(() => {
     vtsState.ttsEnabled = getTtsEnabled();
-    setCookie(cookieKeys.ttsEnabled, vtsState.ttsEnabled);
+    setStorageItem(storageItemKeys.ttsEnabled, vtsState.ttsEnabled);
 
     if (vtsState.ttsEnabled) {
         ttsHeader.style.display = 'block';
@@ -1933,7 +1942,7 @@ $ttsButton.click(() => {
 
 $statusButton.click(() => {
     vtsState.statusEnabled = getStatusEnabled();
-    setCookie(cookieKeys.statusEnabled, vtsState.statusEnabled);
+    setStorageItem(storageItemKeys.statusEnabled, vtsState.statusEnabled);
 
     if (vtsState.statusEnabled) {
         statusBar.style.display = 'block';
@@ -1944,7 +1953,7 @@ $statusButton.click(() => {
 
 $lowlatencyButton.click(() => {
     vtsState.lowlatencyEnabled = getLowlatencyEnabled();
-    setCookie(cookieKeys.lowlatencyEnabled, vtsState.lowlatencyEnabled);
+    setStorageItem(storageItemKeys.lowlatencyEnabled, vtsState.lowlatencyEnabled);
 
     if (vtsState.lowlatencyEnabled) {
         $latencyContainer.removeClass("disabled");
@@ -1964,12 +1973,12 @@ $lowlatencyButton.click(() => {
 latencyInput.onchange = function() {
     this.value = Math.max(Math.min(this.value, this.max), this.min);
     vtsState.latency = this.value;
-    setCookie(cookieKeys.latency, vtsState.latency);
+    setStorageItem(storageItemKeys.latency, vtsState.latency);
 };
 
 $translateButton.click(() => {
     vtsState.translateEnabled = getTranslateEnabled();
-    setCookie(cookieKeys.translateEnabled, vtsState.translateEnabled);
+    setStorageItem(storageItemKeys.translateEnabled, vtsState.translateEnabled);
 
     if (vtsState.translateEnabled) {
         // if (vtsState.lowlatencyEnabled) {
@@ -1991,7 +2000,7 @@ $translateButton.click(() => {
 
 $speakInputButton.click(() => {
     vtsState.speakInputEnabled = getSpeakInputEnabled();
-    setCookie(cookieKeys.speakInputEnabled, vtsState.speakInputEnabled);
+    setStorageItem(storageItemKeys.speakInputEnabled, vtsState.speakInputEnabled);
 });
 
 // Replacements Table
@@ -2353,18 +2362,18 @@ const defaultReplacementsList = [
 
 let replacementsList = [];
 
-resetReplacementsList();
-
 function resetReplacementsList() {
-    let replacementsListCookie = getStringCookie(cookieKeys.replacements, '');
-    if (replacementsListCookie === "") {
+    let replacementsListStorageItem = getStringStorageItem(storageItemKeys.replacements, "");
+    if (replacementsListStorageItem === "") {
         replacementsList = JSON.parse(JSON.stringify(defaultReplacementsList));   
     } else {
-        replacementsList = JSON.parse(replacementsListCookie);
+        replacementsList = JSON.parse(replacementsListStorageItem);
     }
     $replacementEntries.replaceChildren();
     loadReplacementsList();
 }
+
+resetReplacementsList();
 
 function loadReplacementsList() {
     for (const entry of replacementsList) {
@@ -2481,7 +2490,7 @@ function updateReplacementsList() {
 
         replacementsList.push(entry);
     }
-    setCookie(cookieKeys.replacements, JSON.stringify(replacementsList));
+    setStorageItem(storageItemKeys.replacements, JSON.stringify(replacementsList));
 }
 
 function showReplacementDropdownMenuTouch(dropdown) {
@@ -2811,13 +2820,13 @@ test();
 
 // Fill devices
 
-function getOuputDeviceCookieAndUpdate() {
+function getOuputDeviceStorageItemAndUpdate() {
     if (!ranGotDevices) {
         return;
     }
 
     let found = false;
-    vtsState.outputDeviceSelect = getStringCookie(cookieKeys.outputDeviceSelect, defaultVtsState.outputDeviceSelect);
+    vtsState.outputDeviceSelect = getStringStorageItem(storageItemKeys.outputDeviceSelect, defaultVtsState.outputDeviceSelect);
     for (let option of outputDeviceSelect.options) {
         if (option.value == vtsState.outputDeviceSelect) {
             outputDeviceSelect.value = vtsState.outputDeviceSelect;
@@ -2877,13 +2886,13 @@ function gotDevices(deviceInfos) {
     });
 
     ranGotDevices = true;
-    getOuputDeviceCookieAndUpdate();
+    getOuputDeviceStorageItemAndUpdate();
 }
 
 function changeAudioDestination() {
     vtsState.outputDeviceSelect = outputDeviceSelect.value;
     audioDestination = vtsState.outputDeviceSelect;
-    setCookie(cookieKeys.outputDeviceSelect, vtsState.outputDeviceSelect);
+    setStorageItem(storageItemKeys.outputDeviceSelect, vtsState.outputDeviceSelect);
     checkOuputDeviceDisabled();
 }
 
@@ -3112,8 +3121,6 @@ async function playAudio(audioURL, stop, fromTranscript) {
         }
     };
 
-    // audio.preservesPitch = false;
-    // audio.playbackRate = 1;
     audio.play().then(() => {
             // ~console.info("response");
             timeoutTimes = 0;
@@ -3661,13 +3668,13 @@ function resetSettings() {
         displayTime: 2000
     }).nag('show');
 
-    for (const key of Object.keys(Cookies.get())) {
-        if (key.startsWith('vts-') && key !== cookieKeys.replacements) {
-            Cookies.remove(key);
+    for (const key of Object.keys({...window.localStorage})) {
+        if (key.startsWith('vts-') && key !== storageItemKeys.replacements) {
+            window.localStorage.removeItem(key);
         }
     }
 
-    getCookiesAndUpdate();
+    getStorageItemsAndUpdate();
 }
 
 function resetReplacements() {
@@ -3678,58 +3685,58 @@ function resetReplacements() {
         displayTime: 2000
     }).nag('show');
 
-    Cookies.remove(cookieKeys.replacements);
+    window.localStorage.removeItem(storageItemKeys.replacements);
 
-    getCookiesAndUpdate();
+    getStorageItemsAndUpdate();
     resetReplacementsList();
 }
 
-function cleanCookies() {
-    for (const key of Object.keys(Cookies.get())) {
-        if (key.startsWith('vts-') && !Object.values(cookieKeys).includes(key)) {
-            Cookies.remove(key);
+function cleanStorageItems() {
+    for (const key of Object.keys({...window.localStorage})) {
+        if (key.startsWith('vts-') && !Object.values(storageItemKeys).includes(key)) {
+            window.localStorage.removeItem(key);
         }
     }
 }
 
-function getCookiesAndUpdate() {
-    getLanguageCookiesAndUpdate();
-    getOuputDeviceCookieAndUpdate();
-    getSliderCookiesAndUpdate();
+function getStorageItemsAndUpdate() {
+    getLanguageStorageItemsAndUpdate();
+    getOuputDeviceStorageItemAndUpdate();
+    getSliderStorageItemsAndUpdate();
 
-    if (getBooleanCookie(cookieKeys.muteEnabled, false) !== vtsState.muteEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.muteEnabled, false) !== vtsState.muteEnabled) {
         $muteButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.transcriptEnabled, true) !== vtsState.transcriptEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.transcriptEnabled, true) !== vtsState.transcriptEnabled) {
         $transcriptButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.socketEnabled, true) !== vtsState.socketEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.socketEnabled, true) !== vtsState.socketEnabled) {
         $socketButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.ttsEnabled, true) !== vtsState.ttsEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.ttsEnabled, true) !== vtsState.ttsEnabled) {
         $ttsButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.statusEnabled, true) !== vtsState.statusEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.statusEnabled, true) !== vtsState.statusEnabled) {
         $statusButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.lowlatencyEnabled, true) !== vtsState.lowlatencyEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.lowlatencyEnabled, true) !== vtsState.lowlatencyEnabled) {
         $lowlatencyButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.syncLanguageEnabled, true) !== vtsState.syncLanguageEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.syncLanguageEnabled, true) !== vtsState.syncLanguageEnabled) {
         $syncLanguageButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.translateEnabled, false) !== vtsState.translateEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.translateEnabled, false) !== vtsState.translateEnabled) {
         $translateButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.speakInputEnabled, false) !== vtsState.speakInputEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.speakInputEnabled, false) !== vtsState.speakInputEnabled) {
         if ($speakInputButton.prop('disabled')) {
             $speakInputButton.prop('disabled', false);
             $speakInputButton.click();
@@ -3739,25 +3746,25 @@ function getCookiesAndUpdate() {
         }
     }
 
-    if (getBooleanCookie(cookieKeys.timestampsEnabled, true) !== vtsState.timestampsEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.timestampsEnabled, true) !== vtsState.timestampsEnabled) {
         $timestampsButton.click();
     }
 
-    if (getBooleanCookie(cookieKeys.translationsEnabled, true) !== vtsState.translationsEnabled) {
+    if (getBooleanStorageItem(storageItemKeys.translationsEnabled, true) !== vtsState.translationsEnabled) {
         $translationsButton.click();
     }
 
-    vtsState.latency = getNumericCookie(cookieKeys.latency, defaultVtsState.latency);
+    vtsState.latency = getNumericStorageItem(storageItemKeys.latency, defaultVtsState.latency);
     latencyInput.value = vtsState.latency;
 
-    vtsState.socketAddress = getStringCookie(cookieKeys.socketAddress, defaultVtsState.socketAddress);
+    vtsState.socketAddress = getStringStorageItem(storageItemKeys.socketAddress, defaultVtsState.socketAddress);
     socketAddressInput.value = vtsState.socketAddress;
 
-    vtsState.socketPort = getNumericCookie(cookieKeys.socketPort, defaultVtsState.socketPort);
+    vtsState.socketPort = getNumericStorageItem(storageItemKeys.socketPort, defaultVtsState.socketPort);
     socketPortInput.value = vtsState.socketPort;
 
     setupSocket();
 }
 
-cleanCookies();
-getCookiesAndUpdate();
+cleanStorageItems();
+getStorageItemsAndUpdate();
