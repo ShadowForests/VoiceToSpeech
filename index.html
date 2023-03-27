@@ -203,7 +203,7 @@
                   </div>
                 </div>
 
-                <div class="eight wide column">
+                <div id="pitchOption" class="eight wide column" style="display: none !important">
                   <p class="left floated option-text ui sub header">Pitch</p>
                   <p></p>
                   <div id="pitchSlider" class="ui slider extra-voice-slider">
@@ -212,6 +212,14 @@
                       <div class="track-fill"></div>
                       <div id="pitchThumb" class="thumb" onmousedown="pitchSliderMousedown()"></div>
                     </div>
+                  </div>
+                </div>
+
+                <div id="preservePitchOption" class="eight wide column extra-voice-checkbox">
+                  <p class="left floated option-text">Preserve Pitch</p>
+                  <div class="ui right floated toggle checkbox settings-checkbox">
+                    <input id="preservePitchButton" type="checkbox" checked>
+                    <label></label>
                   </div>
                 </div>
               </div>
@@ -684,7 +692,6 @@
 
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
     <script src="bundle.js"></script>
     <script src="script.js"></script>
   </body>

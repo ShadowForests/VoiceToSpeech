@@ -35,17 +35,6 @@ function getStringStorageItem(cname, cdefault) {
     return result == null ? cdefault : result;
 }
 
-// Remove after transfer along with Cookies script
-function transferCookiesToStorage() {
-    for (const key of Object.keys(Cookies.get())) {
-        if (key.startsWith('vts-')) {
-            window.localStorage.setItem(key, Cookies.get(key));
-            Cookies.remove(key);
-        }
-    }
-}
-transferCookiesToStorage();
-
 // Target elements
 
 const outputSpeechStatus = document.querySelector('label#outputSpeechStatus');
@@ -87,6 +76,8 @@ const $timestampsButton = $('div#timestampsCheckbox');
 const $translationsButton = $('div#translationsCheckbox');
 const $clearTranscriptButton = $('div#clearTranscriptButton');
 const $extraVoiceOptions = $('#extraVoiceOptions');
+const $pitchOption = $('#pitchOption');
+const $preservePitchOption = $('#preservePitchOption');
 const $socketButton = $('input#socketCheckbox');
 const $ttsButton = $('input#ttsCheckbox');
 const $statusButton = $('input#statusCheckbox');
@@ -133,6 +124,7 @@ const $volumeFill = $('#volumeFill');
 const $volumeThumb = $('#volumeThumb');
 const $pitchSlider = $('#pitchSlider');
 const $pitchThumb = $('#pitchThumb');
+const $preservePitchButton = $('#preservePitchButton');
 const $rateSlider = $('#rateSlider');
 const $rateThumb = $('#rateThumb');
 const $pitchSliderSS = $('#pitchSliderSS');
@@ -170,6 +162,7 @@ const storageItemKeys = {
     timestampsEnabled: 'vts-timestampsEnabled',
     translationsEnabled: 'vts-translationsEnabled',
     muteEnabled: 'vts-muteEnabled',
+    preservePitchEnabled: 'vts-preservePitchEnabled',
 
     volume: 'vts-volume',
     rate: 'vts-rate',
@@ -179,6 +172,7 @@ const storageItemKeys = {
 }
 
 function getMuteEnabled() { return $muteButton.hasClass('mute'); }
+function getPreservePitchEnabled() { return $preservePitchButton.prop('checked'); }
 function getTranscriptEnabled() { return $transcriptButton.prop('checked'); }
 function getSocketEnabled() { return $socketButton.prop('checked'); }
 function getTtsEnabled() { return $ttsButton.prop('checked'); }
@@ -215,6 +209,7 @@ const defaultVtsState = {
     volume: 100,
     rate: 1.0,
     pitch: 1.0,
+    preservePitchEnabled: getPreservePitchEnabled(),
 }
 
 let vtsState = {...defaultVtsState};
@@ -224,6 +219,7 @@ let translateApi = 0;
 const inputDeviceSelectionDisabled = true;
 
 let audio = new Audio();
+let soundTouch = null;
 let audioDestination;
 
 let speechPlaying = false;
@@ -1376,20 +1372,26 @@ function getSeparateOutputVoice() {
     // const altLang = outputVoice.match(new RegExp(/[a-zA-Z]+-[a-zA-Z]+(?=&)/g));
 
     let voiceSet = getVoiceSet(outputVoice);
-    if (voiceSet === voiceSetMapping.voiceSetS) {
-        // Device Voices
-        outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
-        translationLang = outputVoice;
-    } else if (voiceSet === voiceSetMapping.voiceSetB) {
-        outputVoice = outputVoice.slice(1);
-        translationLang = outputVoice.slice(0, outputVoice.search("&"));
-    } else if (voiceSet === voiceSetMapping.voiceSetC || voiceSet === voiceSetMapping.voiceSetD || voiceSet === voiceSetMapping.voiceSetE) {
-        outputVoice = outputVoice.slice(1);
-        translationLang = outputVoice.slice(0, outputVoice.search(":"));
-        outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
-    } else {
-        outputVoice = outputVoice.slice(1);
-        translationLang = outputVoice;
+    switch (voiceSet) {
+        case voiceSetMapping.voiceSetB:
+            outputVoice = outputVoice.slice(1);
+            translationLang = outputVoice.slice(0, outputVoice.search("&"));
+            break;
+        case voiceSetMapping.voiceSetC:
+        case voiceSetMapping.voiceSetD:
+        case voiceSetMapping.voiceSetE:
+            outputVoice = outputVoice.slice(1);
+            translationLang = outputVoice.slice(0, outputVoice.search(":"));
+            outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
+            break;
+        case voiceSetMapping.voiceSetS:
+            // Device Voices
+            outputVoice = outputVoice.slice(outputVoice.search(":") + 1);
+            translationLang = outputVoice;
+            break;
+        default:
+            outputVoice = outputVoice.slice(1);
+            translationLang = outputVoice;
     }
 
     return { voiceSet, outputVoice, translationLang };
@@ -1442,8 +1444,8 @@ let rateSliderActive = false;
 
 function getSliderStorageItemsAndUpdate() {
     vtsState.volume = getNumericStorageItem(storageItemKeys.volume, defaultVtsState.volume);
-    vtsState.rate = getNumericStorageItem(storageItemKeys.rate, defaultVtsState.rate);
-    vtsState.pitch = getNumericStorageItem(storageItemKeys.pitch, defaultVtsState.pitch);
+    vtsState.rate = getNumericStorageItem(storageItemKeys.rate, defaultVtsState.rate).toFixed(1);
+    vtsState.pitch = getNumericStorageItem(storageItemKeys.pitch, defaultVtsState.pitch).toFixed(1);
 
     initSliders();
 }
@@ -1510,6 +1512,11 @@ $pitchThumb.mouseleave(() => {
     if (!pitchSliderActive) {
         $pitchThumb.popup('hide');
     }
+});
+
+$preservePitchButton.click(() => {
+    vtsState.preservePitchEnabled = getPreservePitchEnabled();
+    setStorageItem(storageItemKeys.preservePitchEnabled, vtsState.preservePitchEnabled);
 });
 
 // Used by rate slider on mousedown
@@ -1628,14 +1635,25 @@ function checkOuputDeviceDisabled() {
 function onOutputVoiceChange() {
     syncOutputLang();
     let { voiceSet, outputVoice, translationLang } = getSeparateOutputVoice();
-    if (voiceSet === voiceSetMapping.voiceSetB || voiceSet === voiceSetMapping.voiceSetS) {
-        $(".options-divider").addClass('options-divider-condensed');
-        $(".row.top-padding-media").addClass('top-padding-media-condensed');
-        $extraVoiceOptions.css('display', '');
-    } else {
-        $(".options-divider").removeClass('options-divider-condensed');
-        $(".row.top-padding-media").removeClass('top-padding-media-condensed');
-        $extraVoiceOptions.css('display', 'none');
+    switch (voiceSet) {
+        // case false:
+        //     $(".options-divider").removeClass('options-divider-condensed');
+        //     $(".row.top-padding-media").removeClass('top-padding-media-condensed');
+        //     $extraVoiceOptions.css('display', 'none');
+        //     break;
+        case voiceSetMapping.voiceSetA:
+            $(".options-divider").addClass('options-divider-condensed');
+            $(".row.top-padding-media").addClass('top-padding-media-condensed');
+            $extraVoiceOptions.css('display', '');
+            $pitchOption.css('display', 'none');
+            $preservePitchOption.css('display', '');
+            break;
+        default:
+            $(".options-divider").addClass('options-divider-condensed');
+            $(".row.top-padding-media").addClass('top-padding-media-condensed');
+            $extraVoiceOptions.css('display', '');
+            $pitchOption.css('display', '');
+            $preservePitchOption.css('display', 'none');
     }
 
     checkOuputDeviceDisabled();
@@ -3057,93 +3075,182 @@ function splitArgsFromEnd(text, match, count) {
     return finalArgs;
 }
 
+async function onPlaybackError(err, audioURL) {
+    speechPlaying = false;
+    // ~console.info("error playTTS");
+    console.error(err);
+    timeoutTimes += 1;
+    if (timeoutTimes > 3) {
+        const errorMsg = "Voice may not be available. Try another output voice.";
+        console.error(errorMsg);
+        updateOutputStatus(errorMsg);
+        timeoutTimes = 0;
+    } else {
+        const errorMsg = `Failed to play audio, trying again. Current attempt: ${timeoutTimes}`;
+        console.error(errorMsg);
+        updateOutputStatus(errorMsg);
+        setTimeout(() => {
+            playAudio(audioURL, false, false);
+        }, 500);
+    }
+}
+
+async function onPlaybackEnded() {
+    speechPlaying = false;
+    const activeAudioElement = $('.active-audio');
+    hideTranscriptHover(activeAudioElement.parent().parent());
+    try {
+        activeAudioElement.children('i')[0].setAttribute('class', 'play circle outline icon');
+        activeAudioElement.removeClass('active-audio');
+    } catch (err) {
+        // Do nothing
+    }
+}
+
 async function playAudio(audioURL, stop, fromTranscript) {
     if (audioURL === "" || vtsState.muteEnabled) {
         return;
     }
 
-    if (audioURL.startsWith('ss:')) {
-        // Let SpeechSynthesis handle audio queue and ignore usual transcript play stop logic
-        const activeAudioElement = $('.active-audio');
-        hideTranscriptHover(activeAudioElement.parent().parent());
+    let preservePitch = true;
+    let pitch = 1.0;
+    let rate = 1.0;
+    let voiceSet = getVoiceSet(audioURL);
+    let useSoundTouch = false;
+    switch (voiceSet) {
+        case voiceSetMapping.voiceSetA: {
+            const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 3);
+            audioURL = args[0];
+            rate = parseFloat(args[1]);
+            preservePitch = args[2] === "true";
+            break;
+        }
+        case voiceSetMapping.voiceSetB: {
+            audioURL = audioURL.slice(audioURL.search(":") + 1);
+            break;
+        }
+        case voiceSetMapping.voiceSetC: 
+        case voiceSetMapping.voiceSetD: {
+            const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 3);
+            audioURL = args[0];
+            rate = parseFloat(args[1]);
+            pitch = parseFloat(args[2]);
+            if (rate !== 1.0 || pitch !== 1.0) {
+                useSoundTouch = true;
+            }
+            break;
+        }
+        case voiceSetMapping.voiceSetE: {
+            const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 4);
+            const jsonPayload = {
+                text: args[0],
+                voice: args[1]
+            }
+            rate = parseFloat(args[2]);
+            pitch = parseFloat(args[3]);
+            const response = await sendJsonRequest('POST', `https://tiktok-tts.weilnet.workers.dev/api/generation`, jsonPayload);
+            audioURL = "data:audio/wav;base64," + JSON.parse(response).data;
+            if (rate !== 1.0 || pitch !== 1.0) {
+                useSoundTouch = true;
+            }
+            break;
+        }
+        case voiceSetMapping.voiceSetS: {
+            // Let SpeechSynthesis handle audio queue and ignore usual transcript play stop logic
+            const activeAudioElement = $('.active-audio');
+            hideTranscriptHover(activeAudioElement.parent().parent());
+            try {
+                activeAudioElement
+                    .children('i')[0]
+                    .setAttribute('class', 'play circle outline icon');
+                activeAudioElement.removeClass('active-audio');
+            } catch (err) {
+                // Do nothing
+            }
+
+            if (fromTranscript) {
+                speechSynthesis.cancel();
+            }
+
+            let msg = new SpeechSynthesisUtterance();
+            const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 4);
+            msg.text = args[0];
+            msg.volume = vtsState.volume / 100;
+            msg.rate = Math.pow(10, parseFloat(args[1]) - 1); // Rate from 0.1 to 10
+            msg.pitch = parseFloat(args[2]);
+            msg.voice = getSpeechSynthesisVoice(args[3]);
+            speechSynthesis.speak(msg);
+            return;
+        }
+    }
+
+    if (useSoundTouch) {
+        // For additional consideration: https://github.com/danigb/timestretch
+        // Used: https://github.com/cutterbl/soundTouchjs-audio-worklet
+        speechPlaying = true;
+        let audioCtx = new AudioContext();
+        await audioCtx.audioWorklet.addModule(window.soundTouchWorklet);
+    
+        const audioBuffer = await fetch(audioURL, { mode: 'cors' })
+            .then(response => {
+                // ~console.info("response");
+                timeoutTimes = 0;
+                return response.arrayBuffer();
+            })
+            .catch(err => onPlaybackError(err, audioURL));
+
+        if (audioBuffer === undefined) {
+            // Error was hit and already caught
+            return;
+        }
+
+        if (stop || soundTouch !== null) {
+            soundTouch.stop();
+        }
         try {
-            activeAudioElement
-                .children('i')[0]
-                .setAttribute('class', 'play circle outline icon');
-            activeAudioElement.removeClass('active-audio');
-        } catch (err) {
-            // Do nothing
-        }
+            audioCtx.setSinkId(audioDestination);
+        } catch(err) {}
 
-        if (fromTranscript) {
-            speechSynthesis.cancel();
-        }
+        soundTouch = window.createSoundTouchNode(audioCtx, AudioWorkletNode, audioBuffer);
+        soundTouch.on('initialized', function() {
+            soundTouch.connectToBuffer(); // AudioBuffer goes to SoundTouchNode
+            let gainNode = new GainNode(audioCtx, { gain: vtsState.volume / 100.0 });
+            soundTouch.connect(gainNode); // SoundTouch goes to the GainNode
+            gainNode.connect(audioCtx.destination); // GainNode goes to the AudioDestinationNode
+            soundTouch.tempo = Math.pow(4, rate - 1); // Rate from 0.25 to 4.0
+            soundTouch.pitchSemitones = (pitch - 1) * 24; // Four octaves of pitch
 
-        let msg = new SpeechSynthesisUtterance();
-        const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 4);
-        msg.text = args[0];
-        msg.volume = vtsState.volume / 100;
-        msg.rate = Math.pow(10, args[1] - 1);
-        msg.pitch = args[2];
-        msg.voice = getSpeechSynthesisVoice(args[3]);
-        speechSynthesis.speak(msg);
-        return;
-    }
-
-    if (audioURL.startsWith('tt:')) {
-        const args = splitArgsFromEnd(audioURL.slice(audioURL.search(":") + 1), "|", 2);
-        const jsonPayload = {
-            text: args[0],
-            voice: args[1]
-        }
-        const response = await sendJsonRequest('POST', `https://tiktok-tts.weilnet.workers.dev/api/generation`, jsonPayload);
-        audioURL = "data:audio/wav;base64," + JSON.parse(response).data;
-    }
-
-    audio.setAttribute('src', audioURL);
-    if (stop) {
-        audio.load();
-    }
-    try {
-        audio.setSinkId(audioDestination);
-    } catch(err) {}
-    audio.volume = vtsState.volume / 100.0;
-    speechPlaying = true;
-    audio.onended = function onended() {
-        speechPlaying = false;
-        const activeAudioElement = $('.active-audio');
-        hideTranscriptHover(activeAudioElement.parent().parent());
-        try {
-            activeAudioElement.children('i')[0].setAttribute('class', 'play circle outline icon');
-            activeAudioElement.removeClass('active-audio');
-        } catch (err) {
-            // Do nothing
-        }
-    };
-
-    audio.play().then(() => {
-            // ~console.info("response");
-            timeoutTimes = 0;
-        })
-        .catch((err) => {
-            speechPlaying = false;
-            // ~console.info("error playTTS");
-            console.error(err);
-            timeoutTimes += 1;
-            if (timeoutTimes > 3) {
+            soundTouch.play().catch((err) => {
+                speechPlaying = false;
+                // ~console.info("error playTTS");
+                console.error(err);
                 const errorMsg = "Voice may not be available. Try another output voice.";
                 console.error(errorMsg);
                 updateOutputStatus(errorMsg);
-                timeoutTimes = 0;
-            } else {
-                const errorMsg = `Failed to play audio, trying again. Current attempt: ${timeoutTimes}`;
-                console.error(errorMsg);
-                updateOutputStatus(errorMsg);
-                setTimeout(() => {
-                    playAudio(audioURL, false, false);
-                }, 500);
-            }
+            });
         });
+
+        soundTouch.on('end', onPlaybackEnded);
+    } else {
+        audio.setAttribute('src', audioURL);
+        if (stop) {
+            audio.load();
+        }
+        try {
+            audio.setSinkId(audioDestination);
+        } catch(err) {}
+        audio.volume = vtsState.volume / 100.0;
+        speechPlaying = true;
+        audio.onended = onPlaybackEnded;
+
+        audio.preservesPitch = preservePitch;
+        audio.playbackRate = rate;
+        audio.play().then(() => {
+            // ~console.info("response");
+            timeoutTimes = 0;
+        })
+        .catch(err => onPlaybackError(err, audioURL));
+    }
 }
 
 async function playTTSInput() {
@@ -3222,33 +3329,40 @@ async function playTTS(speech, useTts, interimAddition = false, padSpacing = tru
             appendTranscript(speechText, untranslatedSpeechText, inputLang, outputLang, "");
         } else if (!noSpeech && !noSpeechEncoded) {
             let audioURL = "";
-            if (voiceSet === voiceSetMapping.voiceSetS) {
-                // Using native speech synthesis
-                if (outputVoice.toLowerCase().includes('google')) {
-                    let rateAdjusted = vtsState.rate;
-                    if (rateAdjusted > 1) {
-                        // Adjust to strech 1 to 1.3 into 1 to 2
-                        rateAdjusted = 1 + Math.log10(vtsState.rate);
+            switch (voiceSet) {
+                case voiceSetMapping.voiceSetA:
+                    // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
+                    audioURL = `a:https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputVoice}&q=${speechEncoded}|${vtsState.rate}|${vtsState.preservePitchEnabled}`;
+                    break;
+                case voiceSetMapping.voiceSetB:
+                    // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&gender=male&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=kvfbSITh
+                    audioURL = `b:https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speechEncoded}&lang=${outputVoice}&engine=g3&name=&pitch=${vtsState.pitch / 2.0}&rate=${vtsState.rate / 2.0}&volume=1&key=kvfbSITh`
+                    break;
+                case voiceSetMapping.voiceSetC:
+                    // Example: https://api.streamelements.com/kappa/v2/speech?voice=Justin&text=hello
+                    audioURL = `c:https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}|${vtsState.rate}|${vtsState.pitch}`;
+                    break;
+                case voiceSetMapping.voiceSetD:
+                    // Example: https://api.streamelements.com/kappa/v2/speech?voice=en-US-Wavenet-A&text=hello
+                    audioURL = `d:https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}|${vtsState.rate}|${vtsState.pitch}`;
+                    break;
+                case voiceSetMapping.voiceSetE:
+                    // Using TikTok voice set
+                    audioURL = `e:${speechText}|${outputVoice}|${vtsState.rate}|${vtsState.pitch}`;
+                    break;
+                case voiceSetMapping.voiceSetS:
+                    // Using native speech synthesis
+                    if (outputVoice.toLowerCase().includes('google')) {
+                        let rateAdjusted = vtsState.rate;
+                        if (rateAdjusted > 1) {
+                            // Adjust to strech 1 to 1.3 into 1 to 2
+                            rateAdjusted = 1 + Math.log10(vtsState.rate);
+                        }
+                        audioURL = `s:${speechText}|${rateAdjusted}|${Math.max(vtsState.pitch, 0.1)}|${outputVoice}`;
+                    } else {
+                        audioURL = `s:${speechText}|${vtsState.rate}|${vtsState.pitch}|${outputVoice}`;
                     }
-                    audioURL = `ss:${speechText}|${rateAdjusted}|${Math.max(vtsState.pitch, 0.1)}|${outputVoice}`;
-                } else {
-                    audioURL = `ss:${speechText}|${vtsState.rate}|${vtsState.pitch}|${outputVoice}`;
-                }
-            } else if (voiceSet === voiceSetMapping.voiceSetA) {
-                // Example: https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello
-                audioURL = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${outputVoice}&q=${speechEncoded}`;
-            } else if (voiceSet === voiceSetMapping.voiceSetB) {
-                // Example: https://texttospeech.responsivevoice.org/v1/text:synthesize?text=hello&lang=en-US&gender=male&engine=g3&name=&pitch=0.5&rate=0.5&volume=1&key=kvfbSITh
-                audioURL = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${speechEncoded}&lang=${outputVoice}&engine=g3&name=&pitch=${vtsState.pitch / 2.0}&rate=${vtsState.rate / 2.0}&volume=1&key=kvfbSITh`
-            } else if (voiceSet === voiceSetMapping.voiceSetC) {
-                // Example: https://api.streamelements.com/kappa/v2/speech?voice=Justin&text=hello
-                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}`;
-            } else if (voiceSet === voiceSetMapping.voiceSetD) {
-                // Example: https://api.streamelements.com/kappa/v2/speech?voice=en-US-Wavenet-A&text=hello
-                audioURL = `https://api.streamelements.com/kappa/v2/speech?voice=${outputVoice}&text=${speechEncoded}`;
-            } else if (voiceSet === voiceSetMapping.voiceSetE) {
-                // Using TikTok voice set
-                audioURL = `tt:${speechText}|${outputVoice}`;
+                    break;
             }
 
             if (vtsState.translateEnabled && translateSuccess) {
@@ -3706,6 +3820,10 @@ function getStorageItemsAndUpdate() {
 
     if (getBooleanStorageItem(storageItemKeys.muteEnabled, false) !== vtsState.muteEnabled) {
         $muteButton.click();
+    }
+
+    if (getBooleanStorageItem(storageItemKeys.preservePitchEnabled, true) !== vtsState.preservePitchEnabled) {
+        $preservePitchButton.click();
     }
 
     if (getBooleanStorageItem(storageItemKeys.transcriptEnabled, true) !== vtsState.transcriptEnabled) {

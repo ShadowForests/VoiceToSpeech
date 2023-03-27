@@ -625,6 +625,10 @@ select {
   padding-bottom: 0.3rem !important;
 }
 
+.extra-voice-checkbox {
+  padding-top: 1.1rem !important;
+}
+
 .volume-slider {
   width: calc(100% - 25px) !important;
   padding-top: 0.6rem !important;
