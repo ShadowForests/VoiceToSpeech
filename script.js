@@ -79,7 +79,8 @@ const $clearTranscriptButton = $('div#clearTranscriptButton');
 const $extraVoiceOptions = $('#extraVoiceOptions');
 const $pitchOption = $('#pitchOption');
 const $preservePitchOption = $('#preservePitchOption');
-const $socketButton = $('input#socketCheckbox');
+const $socketInputButton = $('input#socketInputCheckbox');
+const $socketOutputButton = $('input#socketOutputCheckbox');
 const $ttsButton = $('input#ttsCheckbox');
 const $statusButton = $('input#statusCheckbox');
 const $lowlatencyButton = $('input#lowlatencyCheckbox');
@@ -158,7 +159,8 @@ const storageItemKeys = {
     latency: 'vts-latency',
 
     transcriptEnabled: 'vts-transcriptEnabled',
-    socketEnabled: 'vts-socketEnabled',
+    socketInputEnabled: 'vts-socketInputEnabled',
+    socketOutputEnabled: 'vts-socketOutputEnabled',
     ttsEnabled: 'vts-ttsEnabled',
     statusEnabled: 'vts-statusEnabled',
     lowlatencyEnabled: 'vts-lowlatencyEnabled',
@@ -180,7 +182,8 @@ const storageItemKeys = {
 function getMuteEnabled() { return $muteButton.hasClass('mute'); }
 function getPreservePitchEnabled() { return $preservePitchButton.prop('checked'); }
 function getTranscriptEnabled() { return $transcriptButton.prop('checked'); }
-function getSocketEnabled() { return $socketButton.prop('checked'); }
+function getSocketInputEnabled() { return $socketInputButton.prop('checked'); }
+function getSocketOutputEnabled() { return $socketOutputButton.prop('checked'); }
 function getTtsEnabled() { return $ttsButton.prop('checked'); }
 function getStatusEnabled() { return $statusButton.prop('checked'); }
 function getLowlatencyEnabled() { return $lowlatencyButton.prop('checked'); }
@@ -201,7 +204,8 @@ const defaultVtsState = {
     latency: 1000,
 
     transcriptEnabled: getTranscriptEnabled(),
-    socketEnabled: getSocketEnabled(),
+    socketInputEnabled: getSocketInputEnabled(),
+    socketOutputEnabled: getSocketOutputEnabled(),
     ttsEnabled: getTtsEnabled(),
     statusEnabled: getStatusEnabled(),
     lowlatencyEnabled: getLowlatencyEnabled(),
@@ -253,6 +257,15 @@ function setupSocket() {
             'SOCKET: Restart to reconnect socket if using a personal server.',
         );
         socket.disconnect();
+    });
+
+    socket.on('text', (...args) => {
+        if (vtsState.socketInputEnabled) {
+            let text = args[0];
+            if (text != null) {
+                playTTS([text], true, false, true);
+            }
+        }
     });
 
     socket.connect();
@@ -1933,9 +1946,14 @@ $transcriptButton.click(() => {
     }
 });
 
-$socketButton.click(() => {
-    vtsState.socketEnabled = getSocketEnabled();
-    setStorageItem(storageItemKeys.socketEnabled, vtsState.socketEnabled);
+$socketInputButton.click(() => {
+    vtsState.socketInputEnabled = getSocketInputEnabled();
+    setStorageItem(storageItemKeys.socketInputEnabled, vtsState.socketInputEnabled);
+});
+
+$socketOutputButton.click(() => {
+    vtsState.socketOutputEnabled = getSocketOutputEnabled();
+    setStorageItem(storageItemKeys.socketOutputEnabled, vtsState.socketOutputEnabled);
 });
 
 socketAddressInput.onchange = function() {
@@ -3533,7 +3551,7 @@ async function playTTS(speech, useTts, interimAddition = false, padSpacing = tru
 
         if (useTts || !noSpeech || noSpeechIntentional) {
             console.info(`Speech: ${speechText}`);
-            if (vtsState.socketEnabled) {
+            if (vtsState.socketOutputEnabled) {
                 let socketInputLang = findMatchingOutputLang(inputLang);
                 let socketOutputLang = outputLang;
                 if (socketOutputLang === null) {
@@ -3924,7 +3942,7 @@ function testSpeech() {
         if (buttonState === -1) {
             console.info('SpeechRecognition.stopped');
             updateOutputStatus('recognition stopped');
-            if (vtsState.socketEnabled) {
+            if (vtsState.socketOutputEnabled) {
                 socket.emit('status', 'stopped');
             }
             buttonState = 0;
@@ -3957,7 +3975,7 @@ function testSpeech() {
         if (buttonState === 1) {
             console.info('SpeechRecognition.soundend');
             updateOutputStatus('sound ended');
-            if (vtsState.socketEnabled) {
+            if (vtsState.socketOutputEnabled) {
                 socket.emit('status', 'soundend');
             }
         }
@@ -3969,7 +3987,7 @@ function testSpeech() {
         if (buttonState === 1) {
             console.info('SpeechRecognition.speechstart');
             updateOutputStatus('speech detected');
-            if (vtsState.socketEnabled) {
+            if (vtsState.socketOutputEnabled) {
                 socket.emit('status', 'speechstart');
             }
         }
@@ -4048,8 +4066,12 @@ function getStorageItemsAndUpdate() {
         $transcriptButton.click();
     }
 
-    if (getBooleanStorageItem(storageItemKeys.socketEnabled, true) !== vtsState.socketEnabled) {
-        $socketButton.click();
+    if (getBooleanStorageItem(storageItemKeys.socketInputEnabled, true) !== vtsState.socketInputEnabled) {
+        $socketInputButton.click();
+    }
+
+    if (getBooleanStorageItem(storageItemKeys.socketOutputEnabled, true) !== vtsState.socketOutputEnabled) {
+        $socketOutputButton.click();
     }
 
     if (getBooleanStorageItem(storageItemKeys.ttsEnabled, true) !== vtsState.ttsEnabled) {

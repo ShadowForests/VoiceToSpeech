@@ -481,23 +481,29 @@
               <div class="content">
                 To enable the socket connection, go to <b>Socket Setup</b> in the <b>Settings</b> menu and make sure <b>Socket</b> is enabled. For the default settings, set the <b>Address</b> to [<code><b>localhost</b></code>] and the <b>Port</b> to [<code><b>3000</b></code>]. You can then hook the output from this website into other services by implementing a <b>socket listener</b> in your choice of programming language.
                 <br><br>
+                The following events are received:
+                <br>
+                [<code><b>text</b></code>]
+                <br>
+                &emsp;- <code><b>[0] text (str)</b></code>: The text to speak
+                <br><br>
                 The following events are emitted:
                 <br>
                 [<code><b>status</b></code>]
                 <br>
-                &emsp;- <code><b>[0] status</b></code>: Current speech recognition status
+                &emsp;- <code><b>[0] status (str)</b></code>: Current speech recognition status
                 <br>
                 [<code><b>speech</b></code>]
-                <br>&emsp;- <code><b>[0] speech</b></code>: The text that was spoken
-                <br>&emsp;- <code><b>[1] untranslatedSpeech</b></code>: The spoken text before translation
-                <br>&emsp;- <code><b>[2] translatedSpeech</b></code>: The spoken text after translation
-                <br>&emsp;- <code><b>[3] inputLang</b></code>: The input language code
-                <br>&emsp;- <code><b>[4] outputLang</b></code>: The output language code
-                <br>&emsp;- <code><b>[5] translateEnabled</b></code>: Whether translation is enabled
-                <br>&emsp;- <code><b>[6] lowlatencyEnabled</b></code>: Whether low latency mode is enabled
-                <br>&emsp;- <code><b>[7] ttsEnabled</b></code>: Whether the text was output using Text-to-Speech input instead of voice recognition
-                <br>&emsp;- <code><b>[8] interimAddition</b></code>: Whether this text is being appended to a previous Low-Latency result
-                <br>&emsp;- <code><b>[9] padSpacing</b></code>: If this is a Low-Latency interim addition, whether this language may need a space to be padded before connecting to previous interim text
+                <br>&emsp;- <code><b>[0] speech (str)</b></code>: The text that was spoken
+                <br>&emsp;- <code><b>[1] untranslatedSpeech (str)</b></code>: The spoken text before translation
+                <br>&emsp;- <code><b>[2] translatedSpeech (str)</b></code>: The spoken text after translation
+                <br>&emsp;- <code><b>[3] inputLang (str)</b></code>: The input language code
+                <br>&emsp;- <code><b>[4] outputLang (str)</b></code>: The output language code
+                <br>&emsp;- <code><b>[5] translateEnabled (bool)</b></code>: Whether translation is enabled
+                <br>&emsp;- <code><b>[6] lowlatencyEnabled (bool)</b></code>: Whether low latency mode is enabled
+                <br>&emsp;- <code><b>[7] ttsEnabled (bool)</b></code>: Whether the text was output using Text-to-Speech input instead of voice recognition
+                <br>&emsp;- <code><b>[8] interimAddition (bool)</b></code>: Whether this text is being appended to a previous Low-Latency result
+                <br>&emsp;- <code><b>[9] padSpacing (bool)</b></code>: If this is a Low-Latency interim addition, whether this language may need a space to be padded before connecting to previous interim text
               </div>
 
               <div class="title">
@@ -621,9 +627,19 @@
           <div class="ui container grid">
             <div class="row no-bottom-padding">
               <div class="wide column">
-                <p class="left floated option-text">Socket</p>
+                <p class="left floated option-text">Socket Input</p>
                 <div class="ui right floated toggle checkbox settings-checkbox">
-                  <input id="socketCheckbox" type="checkbox" checked>
+                  <input id="socketInputCheckbox" type="checkbox" checked>
+                  <label></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row small-top-padding no-bottom-padding">
+              <div class="wide column">
+                <p class="left floated option-text">Socket Output</p>
+                <div class="ui right floated toggle checkbox settings-checkbox">
+                  <input id="socketOutputCheckbox" type="checkbox" checked>
                   <label></label>
                 </div>
               </div>
