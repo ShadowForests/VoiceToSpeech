@@ -560,6 +560,11 @@ select {
     padding-right: 0rem !important;
   }
 
+  .ui.file.input {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
   .tab-replacements {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
@@ -984,7 +989,7 @@ select {
 }
 
 ::-webkit-scrollbar {
-  background-color: white;
+  background-color: transparent;
 }
 
 .replacements-placeholder {
@@ -1078,13 +1083,15 @@ select {
 }
 
 .table-footer {
-  padding: 0.25rem !important;
+  padding-left: 0.25rem !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.45rem !important;
   padding-right: 0px !important;
 }
 
 .table-footer-text {
   margin: 0.25rem;
-  margin-top: 0.275rem;
+  margin-top: 0.375rem;
 }
 
 .table-cell-input {
@@ -1200,6 +1207,31 @@ input[type=number] {
   background-color: rgba(0, 0, 0, 0) !important;
   cursor: auto !important;
   padding: 0.25rem !important;
+  z-index: 13 !important;
+}
+
+.dropdown-header {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+  text-align: center;
+  -webkit-text-stroke-width: 0.03rem;
+  font-weight: normal;
+  color: black;
+}
+
+.dropdown-divider {
+  margin-top: 0rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.top-dropdown-parent {
+  position: fixed !important;
+  width: 300px;
+  margin-left: -300px;
+}
+
+.top-nag {
+  z-index: 10000 !important;
 }
 
 .hover-button {

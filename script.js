@@ -67,6 +67,7 @@ const $resetReplacementsModal = $('div#resetReplacementsModal');
 const $resetReplacementsNag = $('div#resetReplacementsNag');
 const $clearTranscriptModal = $('div#clearTranscriptModal');
 const $clearTranscriptNag = $('div#clearTranscriptNag');
+const $uploadReplacementsModal = $('div#uploadReplacementsModal');
 
 const $ttsInput = $('input#ttsInput');
 const $transcriptButton = $('input#transcriptCheckbox');
@@ -115,6 +116,11 @@ const $replacementEntries = document.querySelector('tbody#replacementEntries');
 const $replacementEntryTemplate = document.querySelector('table#replacementEntryTemplate').firstElementChild.firstElementChild;
 const $replacementsTableClone = document.querySelector('table#replacementsTableClone');
 const $replacementsTableCloneRowContainer = document.querySelector('table#replacementsTableCloneRowContainer');
+
+const $importReplacementsDropdown = $('div#importReplacementsDropdown');
+const $exportReplacementsDropdown = $('div#exportReplacementsDropdown');
+const importReplacementsButton = document.querySelector('div#importReplacementsButton');
+const replacementsFileInput = document.querySelector('input#replacementsFileInput');
 
 $templates.remove();
 
@@ -1715,6 +1721,20 @@ $optionsButton.click(() => {
     if (initOptions) {
         initOptions = false;
 
+        $importReplacementsDropdown.dropdown({
+            action: 'nothing',
+            onShow: async function() {
+                $importReplacementsDropdown.popup('hide');
+            }
+        });
+
+        $exportReplacementsDropdown.dropdown({
+            action: 'nothing',
+            onShow: async function() {
+                $exportReplacementsDropdown.popup('hide');
+            }
+        });
+
         // Fix broken dropdown
         $('[data-value="divider"]').addClass('divider');
         $('[data-value="divider"]').addClass('disabled');
@@ -1736,21 +1756,41 @@ $optionsButton.click(() => {
         $('.pointing.menu.options-menu .item').tab();
         $('.ui.accordion').accordion();
 
-        // Modal setup
-        $resetSettingsModal.modal({
-            autofocus: false,
-            duration: 300,
-        });
-
-        $resetReplacementsModal.modal({
-            autofocus: false,
-            duration: 300,
-        });
-
         $resetOptionsButton.click(() => {
+            $resetSettingsModal.modal({
+                autofocus: false,
+                duration: 300,
+                onHide: async function(elem) {
+                    $resetSettingsModal.modal({
+                        autofocus: false,
+                        duration: 300,
+                        onHide: async function(elem) {
+                            return true;
+                        }
+                    });
+                    $optionsModal.modal('show');
+                }
+            });
+
+            $resetReplacementsModal.modal({
+                autofocus: false,
+                duration: 300,
+                onHide: async function(elem) {
+                    $resetReplacementsModal.modal({
+                        autofocus: false,
+                        duration: 300,
+                        onHide: async function(elem) {
+                            return true;
+                        }
+                    });
+                    $optionsModal.modal('show');
+                }
+            });
+
             resetOptions();
         });
 
+        // Modal setup
         $clearTranscriptModal.modal({
             autofocus: false,
             duration: 300,
@@ -1760,21 +1800,39 @@ $optionsButton.click(() => {
             $clearTranscriptModal.modal('show');
         });
 
-        $uiMenuModal.modal({
-            autofocus: false,
-            duration: 300,
-        });
-
         $uiMenuButton.click(() => {
+            $uiMenuModal.modal({
+                autofocus: false,
+                duration: 300,
+                onHide: async function(elem) {
+                    $uiMenuModal.modal({
+                        autofocus: false,
+                        duration: 300,
+                        onHide: async function(elem) {
+                            return true;
+                        }
+                    });
+                    $optionsModal.modal('show');
+                }
+            });
             $uiMenuModal.modal('show');
         });
 
-        $socketMenuModal.modal({
-            autofocus: false,
-            duration: 300,
-        });
-
         $socketMenuButton.click(() => {
+            $socketMenuModal.modal({
+                autofocus: false,
+                duration: 300,
+                onHide: async function(elem) {
+                    $socketMenuModal.modal({
+                        autofocus: false,
+                        duration: 300,
+                        onHide: async function(elem) {
+                            return true;
+                        }
+                    });
+                    $optionsModal.modal('show');
+                }
+            });
             $socketMenuModal.modal('show');
         });
     }
@@ -2350,6 +2408,11 @@ $replacementEntries.querySelectorAll('tr').forEach(function (row, index) {
 
 // Replacements Map
 
+const FULL_MATCH = "fullMatch";
+const REMOVE_LEADING_SPACE = "removeLeadingSpace";
+const REMOVE_TRAILING_SPACE = "removeTrailingSpace";
+const replacementEntryScaffold = ["", "", {"fullMatch": true, "removeLeadingSpace": true, "removeTrailingSpace": true}]
+
 const defaultReplacementsList = [
     ["clear", "", {"fullMatch": true}],
     ["period", ".", {"removeLeadingSpace": true}],
@@ -2390,6 +2453,10 @@ function resetReplacementsList() {
     $replacementEntries.replaceChildren();
     loadReplacementsList();
 }
+function processing(file) {
+    // Do something to the file
+    console.log(file);
+}
 
 resetReplacementsList();
 
@@ -2399,31 +2466,181 @@ function loadReplacementsList() {
     }
 }
 
-function importReplacements() {
-    // if (phrase !== null) {
-    //     if (typeof phrase === 'string') {
-    //         newTableEntry.querySelector('.phrase').value = phrase;
-
-    //         if (options !== null) {
-    //             if (typeof options === 'object') {
-    //                 newTableEntry.querySelector('.phrase').value = options.replacement;
-    //             } else if (typeof options === 'string') {
-    //                 newTableEntry.querySelector('.phrase').value = options;
-    //             } else {
-    //                 console.info(`Invalid options found while adding replacement entry for phrase: "${phrase}"`);
-    //             }
-    //             newTableEntry.querySelector('.phrase').value = phrase;
-    //         }
-    //     } else {
-    //         console.info(`Invalid phrase found while adding replacement entry: "${phrase}"`);
-    //     }
-    // }
-    updateReplacementsList();
+function downloadTextFile(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+  
+    element.style.display = 'none';
+    document.body.appendChild(element);
+  
+    element.click();
+  
+    document.body.removeChild(element);
 }
 
-function exportReplacements() {
-    // TODO: Export UI
-    navigator.clipboard.writeText(JSON.stringify(replacementsList));
+async function copyReplacements() {
+    $exportReplacementsDropdown.dropdown('hide');
+    try {
+        navigator.clipboard.writeText(JSON.stringify(replacementsList));
+        $.toast({
+            class: 'grey',
+            position: 'top center',
+            compact: false,
+            message: `Copied!`
+        });
+    } catch (err) {
+        $.toast({
+            class: 'error',
+            position: 'top center',
+            compact: false,
+            message: `Copy failed!`
+        });
+    }
+}
+
+async function downloadReplacements() {
+    $exportReplacementsDropdown.dropdown('hide');
+    downloadTextFile("replacements.json", JSON.stringify(replacementsList));
+}
+
+function cleanReplacementsList(srcReplacementsList) {
+    let dstReplacementsList = [];
+    for (let srcEntry of srcReplacementsList) {
+        if (!Array.isArray(srcEntry)) {
+            continue;
+        }
+
+        if (srcEntry.length < 2) {
+            continue;
+        }
+
+        let dstEntry = [];
+        let validEntry = true;
+        for (let i = 0; i < replacementEntryScaffold.length; i++) {
+            if (i >= srcEntry.length) {
+                // Options is optional
+                break;
+            }
+
+            let srcItem = srcEntry[i];
+            scaffoldItem = replacementEntryScaffold[i];
+            if (typeof scaffoldItem === 'object') {
+                // Validate options
+                let dstItem = {};
+                let validObject = false;
+                for (let [key, value] of Object.entries(scaffoldItem)) {
+                    if (srcItem.hasOwnProperty(key) && typeof srcItem[key] === typeof value) {
+                        dstItem[key] = srcItem[key];
+                        validObject = true;
+                    }
+                }
+                if (validObject) {
+                    dstEntry.push(dstItem);
+                }
+            } else if (typeof srcItem === typeof scaffoldItem) {
+                // Validate phrase and replacement
+                dstEntry.push(srcItem);
+            } else {
+                // Incorrect type
+                validEntry = false;
+                break;
+            }
+        }
+
+        if (validEntry && dstEntry.length > 0) {
+            dstReplacementsList.push(dstEntry);
+        }
+    }
+    return dstReplacementsList;
+}
+
+async function importReplacements(content) {
+    let srcReplacementsList = {};
+    try {
+        srcReplacementsList = JSON.parse(content);
+    } catch(e) {
+        $.toast({
+            class: 'error',
+            position: 'top center',
+            compact: false,
+            message: `Import failed!`
+        });
+        console.error(e);
+        return;
+    }
+    replacementsList = cleanReplacementsList(srcReplacementsList);
+    setStorageItem(storageItemKeys.replacements, JSON.stringify(replacementsList));
+    resetReplacementsList();
+    $replacementEntries.scrollTop = 0;
+    $.toast({
+        class: 'success',
+        position: 'top center',
+        compact: false,
+        message: `Imported!`
+    });
+}
+
+async function pasteReplacements() {
+    $importReplacementsDropdown.dropdown('hide');
+    try {
+        let clipboardText = await navigator.clipboard.readText();
+        importReplacements(clipboardText);
+    } catch (err) {
+        $.toast({
+            class: 'error',
+            position: 'top center',
+            compact: false,
+            message: `Paste failed!`
+        });
+    }
+}
+
+async function uploadReplacements() {
+    $importReplacementsDropdown.dropdown('hide');
+
+    // Clear any existing file
+    replacementsFileInput.value = "";
+    replacementsFileInput.parentElement.classList.remove("disabled");
+    importReplacementsButton.classList.add("disabled");
+    importReplacementsButton.firstElementChild.style.display = "none";
+    importReplacementsButton.lastChild.textContent = "Import";
+
+    replacementsFileInput.onchange = function() {
+        importReplacementsButton.classList.remove("disabled")
+    }
+
+    $uploadReplacementsModal.modal({
+        autofocus: false,
+        duration: 300,
+        onHide: async function(elem) {
+            $uploadReplacementsModal.modal({
+                autofocus: false,
+                duration: 300,
+                onHide: async function(elem) {
+                    return true;
+                },
+                onHidden: async function() {
+                    replacementsFileInput.value = "";
+                }
+            });
+            $optionsModal.modal('show');
+        },
+    }).modal('show');
+}
+
+async function importReplacementsFile() {
+    replacementsFileInput.parentElement.classList.add("disabled");
+    importReplacementsButton.classList.add("disabled")
+    importReplacementsButton.firstElementChild.style.display = "inline-block";
+    importReplacementsButton.lastChild.textContent = "Importing...";
+    const replacementsFile = replacementsFileInput.files[0];
+    const reader = new FileReader();
+    reader.readAsText(replacementsFile);
+    reader.onload = () => {
+        importReplacements(reader.result);
+        $uploadReplacementsModal.modal('hide');
+    };
 }
 
 function applyReplacements(text) {
@@ -2432,15 +2649,15 @@ function applyReplacements(text) {
         let removeLeadingSpace = false;
         let removeTrailingSpace = false;
         if (options !== undefined) {
-            if (options.hasOwnProperty('fullMatch')) {
+            if (options.hasOwnProperty(FULL_MATCH)) {
                 fullMatch = options.fullMatch;
             }
 
-            if (options.hasOwnProperty('removeLeadingSpace')) {
+            if (options.hasOwnProperty(REMOVE_LEADING_SPACE)) {
                 removeLeadingSpace = options.removeLeadingSpace;
             }
 
-            if (options.hasOwnProperty('removeTrailingSpace')) {
+            if (options.hasOwnProperty(REMOVE_TRAILING_SPACE)) {
                 removeTrailingSpace = options.removeTrailingSpace;
             }
         }
@@ -2531,7 +2748,8 @@ function showReplacementDropdownMenu(dropdown) {
             menu.classList.add('pointing-bottom-right');
             $(dropdown).dropdown({
                 action: 'nothing',
-                direction: 'upward'
+                direction: 'upward',
+                transition: 'slide up'
             }).dropdown('show');
         } else {
             menu.classList.remove('pointing-bottom-right');

@@ -20,7 +20,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.0/dist/semantic.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.0/dist/semantic.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap">
@@ -37,13 +37,13 @@
       </span>
       <i class="close icon"></i>
     </div>
-    <div id="resetSettingsNag" class="ui red overlay nag" style="display: none;">
+    <div id="resetSettingsNag" class="ui red overlay nag top-nag" style="display: none;">
       <span class="title unselectable" unselectable="on">
         Reset all settings.
       </span>
       <i class="close icon"></i>
     </div>
-    <div id="resetReplacementsNag" class="ui red overlay nag" style="display: none;">
+    <div id="resetReplacementsNag" class="ui red overlay nag top-nag" style="display: none;">
       <span class="title unselectable" unselectable="on">
         Reset all replacements.
       </span>
@@ -302,27 +302,54 @@
                   <th class="table-footer" colspan="4">
                     <span class="ui grey text left table-footer-text">Priority: Top⭢Bottom</span>
                     <div class="right floated">
-                      <div id="exportReplacementsButton" class="ui button footer-button" onclick="exportReplacements()">
-                        <i class="file export icon export-icon"></i>
-                      </div>
-                      <div class="ui popup custom-popup">
-                        Export Replacements
-                      </div>
-                    </div>
-                    <div class="right floated">
-                      <div id="importReplacementsButton" class="ui disabled button footer-button" onclick="importReplacements()">
-                        <i class="file import icon import-icon"></i>
-                      </div>
-                      <div class="ui popup custom-popup">
-                        Import Replacements
-                      </div>
-                    </div>
-                    <div class="right floated">
-                      <div id="addEntryButton" class="ui button footer-button" onclick="addEmptyReplacementEntry()">
-                        <i class="plus icon plus-icon"></i>
-                      </div>
-                      <div class="ui popup custom-popup">
-                        Add Entry
+                      <div class="top-dropdown-parent">
+                        <div class="right floated">
+                          <div id="exportReplacementsDropdown" class="ui floating top right pointing dropdown button footer-button hover-button">
+                            <i class="file export icon export-icon"></i>
+                            <div class="left menu">
+                              <p class="ui center text dropdown-header">Export Replacements</p>
+                              <div class="divider dropdown-divider unselectable" unselectable="on"></div>
+                              <div class="item dropdown-button">
+                                <div id="copyReplacementsButton" class="ui fluid compact primary button hover-button" onclick="copyReplacements()">
+                                  <i class="copy icon"></i>
+                                  Copy to Clipboard
+                                </div>
+                              </div>
+                              <div class="item dropdown-button">
+                                <div id="downloadReplacementsButton" class="ui fluid compact primary button hover-button" onclick="downloadReplacements()">
+                                  <i class="download icon"></i>
+                                  Download File
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="right floated">
+                          <div id="importReplacementsDropdown" class="ui floating top right pointing dropdown button footer-button hover-button">
+                            <i class="file import icon import-icon"></i>
+                            <div class="left menu">
+                              <p class="ui center dropdown-header">Import Replacements</p>
+                              <div class="divider dropdown-divider unselectable" unselectable="on"></div>
+                              <div class="item dropdown-button">
+                                <div id="pasteReplacementsButton" class="ui fluid compact primary button hover-button" onclick="pasteReplacements()">
+                                  <i class="paste icon"></i>
+                                  Paste from Clipboard
+                                </div>
+                              </div>
+                              <div class="item dropdown-button">
+                                <div id="uploadReplacementsButton" class="ui fluid compact primary button hover-button" onclick="uploadReplacements()">
+                                  <i class="upload icon"></i>
+                                  Upload File
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="right floated">
+                          <div id="addEntryButton" class="ui button footer-button" onclick="addEmptyReplacementEntry()">
+                            <i class="plus icon plus-icon"></i>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </th>
@@ -518,6 +545,21 @@
           <div class="ui red button" onclick="resetReplacements()">Reset</div>
         </div>
       </div>
+      <div id="uploadReplacementsModal" class="ui mini modal">
+        <div class="header unselectable" unselectable="on">Upload Replacements File</div>
+        <div class="content unselectable" unselectable="on">
+          <div class="ui file input">
+            <input id="replacementsFileInput" type="file">
+          </div>
+        </div>
+        <div class="actions unselectable" unselectable="on">
+          <div class="ui button" onclick="$('div#uploadReplacementsModal').modal('hide')">Cancel</div>
+          <div id="importReplacementsButton" class="ui primary disabled button" onclick="importReplacementsFile()">
+            <i class="loading spinner icon"></i>
+            Import
+          </div>
+        </div>
+      </div>
 
       <div id="clearTranscriptModal" class="ui mini modal unselectable" unselectable="on">
         <div class="header unselectable" unselectable="on">Clear Transcript</div>
@@ -532,6 +574,7 @@
 
       <div id="uiMenuModal" class="ui mini modal unselectable" unselectable="on">
         <div class="header unselectable" unselectable="on">UI Visibility</div>
+        <i class="close icon close-icon"></i>
 
         <div class="content unselectable" unselectable="on">
           <div class="ui container grid">
@@ -572,6 +615,7 @@
 
       <div id="socketMenuModal" class="ui mini modal unselectable" unselectable="on">
         <div class="header unselectable" unselectable="on">Socket Setup</div>
+        <i class="close icon close-icon"></i>
 
         <div class="content unselectable" unselectable="on">
           <div class="ui container grid">
@@ -671,14 +715,18 @@
           <tr>
             <th class="table-footer draggable" colspan="4">
               <span class="ui grey text left table-footer-text">Priority: Top⭢Bottom</span>
-              <div class="right floated">
-                <div class="ui button footer-button export-button draggable"><i class="file export icon export-icon"></i></div>
-              </div>
               <div class="right floated draggable">
-                <div class="ui disabled button footer-button draggable"><i class="file import icon import-icon"></i></div>
-              </div>
-              <div class="right floated draggable">
-                <div class="ui button footer-button draggable"><i class="plus icon plus-icon"></i></div>
+                <div class="top-dropdown-parent draggable">
+                  <div class="right floated">
+                    <div class="ui button footer-button export-button draggable"><i class="file export icon export-icon"></i></div>
+                  </div>
+                  <div class="right floated draggable">
+                    <div class="ui disabled button footer-button draggable"><i class="file import icon import-icon"></i></div>
+                  </div>
+                  <div class="right floated draggable">
+                    <div class="ui button footer-button draggable"><i class="plus icon plus-icon"></i></div>
+                  </div>
+                </div>
               </div>
             </th>
           </tr>
